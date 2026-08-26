@@ -4,10 +4,12 @@
   // ---------- State ----------
   const playlist = []; // { path, name }
   let currentIndex = -1;
+  let selectedIndex = -1;
   let shuffleOn = false;
   let repeatOn = false;
   let seeking = false;
   let showRemaining = false;
+  let eqEnabled = true;
 
   // ---------- Elements ----------
   const audio = new Audio();
@@ -93,7 +95,9 @@
     playlist.forEach((track, i) => {
       const li = document.createElement('li');
       if (i === currentIndex) li.classList.add('playing');
+      if (i === selectedIndex) li.classList.add('selected');
       li.innerHTML = `<span class="idx">${i + 1}.</span><span class="name">${track.name}</span><span class="rm">✕</span>`;
+      li.addEventListener('click', () => { selectedIndex = i; renderPlaylist(); });
       li.addEventListener('dblclick', () => loadAndPlay(i));
       li.querySelector('.rm').addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -111,6 +115,8 @@
     } else if (i < currentIndex) {
       currentIndex--;
     }
+    if (i === selectedIndex) selectedIndex = -1;
+    else if (i < selectedIndex) selectedIndex--;
     renderPlaylist();
   }
 
@@ -118,7 +124,7 @@
     let added = false;
     for (const p of paths) {
       if (!p) continue;
-      playlist.push({ path: p, name: baseName(p) });
+      playlist.push({ source: 'local', path: p, name: baseName(p) });
       added = true;
     }
     if (added) renderPlaylist();
@@ -127,18 +133,67 @@
     }
   }
 
+  function addDriveFiles(files) {
+    let added = false;
+    for (const f of files) {
+      playlist.push({ source: 'drive', fileId: f.id, name: f.name });
+      added = true;
+    }
+    if (added) renderPlaylist();
+    if (currentIndex === -1 && playlist.length > 0) {
+      loadAndPlay(0);
+    }
+  }
+
+  const MIME_BY_EXT = {
+    mp3: 'audio/mpeg', wav: 'audio/wav', m4a: 'audio/mp4', aac: 'audio/aac',
+    ogg: 'audio/ogg', flac: 'audio/flac',
+  };
+  function guessMime(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    return MIME_BY_EXT[ext] || 'audio/mpeg';
+  }
+
+  let currentBlobUrl = null;
+  function revokeCurrentBlobUrl() {
+    if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
+  }
+
   // ---------- Playback ----------
-  function loadAndPlay(index) {
+  let loadToken = 0;
+  async function loadAndPlay(index) {
     if (index < 0 || index >= playlist.length) return;
     currentIndex = index;
+    const token = ++loadToken;
     const track = playlist[index];
-    audio.src = 'file://' + encodeURI(track.path).replace(/#/g, '%23');
+    trackName.textContent = track.source === 'drive' ? `${track.name} (loading…)` : track.name;
+    checkMarquee();
+    renderPlaylist();
+
+    if (track.source === 'drive') {
+      try {
+        const base64 = await window.retro.googleGetTrack(track.fileId);
+        if (token !== loadToken) return; // a newer load superseded this one
+        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        revokeCurrentBlobUrl();
+        currentBlobUrl = URL.createObjectURL(new Blob([bytes], { type: guessMime(track.name) }));
+        audio.src = currentBlobUrl;
+      } catch (err) {
+        trackName.textContent = `${track.name} (failed to load)`;
+        console.error(err);
+        return;
+      }
+    } else {
+      revokeCurrentBlobUrl();
+      audio.src = 'file://' + encodeURI(track.path).replace(/#/g, '%23');
+    }
+
+    if (token !== loadToken) return;
     trackName.textContent = track.name;
     checkMarquee();
     resumeAudioCtx();
     audio.play().catch(() => {});
-    renderPlaylist();
-    probeMeta(track.path);
+    probeMeta(track.name);
   }
 
   function checkMarquee() {
@@ -205,8 +260,77 @@
   el('btnClear').addEventListener('click', () => {
     playlist.length = 0;
     currentIndex = -1;
+    selectedIndex = -1;
     stop();
     renderPlaylist();
+  });
+  el('btnRem').addEventListener('click', () => {
+    if (selectedIndex !== -1) removeTrack(selectedIndex);
+  });
+
+  // ---------- Google Drive ----------
+  const gdriveStatus = el('gdriveStatus');
+  const btnGdriveConnect = el('btnGdriveConnect');
+  const gdriveFolderRow = el('gdriveFolderRow');
+  const gdriveFolderInput = el('gdriveFolderInput');
+
+  async function refreshGdriveStatus() {
+    const s = await window.retro.googleStatus();
+    if (!s.configured) {
+      gdriveStatus.textContent = 'Google Drive: not set up yet (click Setup)';
+      gdriveStatus.classList.remove('connected');
+      btnGdriveConnect.textContent = 'Connect';
+      gdriveFolderRow.classList.add('hidden');
+    } else if (!s.connected) {
+      gdriveStatus.textContent = 'Google Drive: not connected';
+      gdriveStatus.classList.remove('connected');
+      btnGdriveConnect.textContent = 'Connect';
+      gdriveFolderRow.classList.add('hidden');
+    } else {
+      gdriveStatus.textContent = 'Google Drive: connected';
+      gdriveStatus.classList.add('connected');
+      btnGdriveConnect.textContent = 'Disconnect';
+      gdriveFolderRow.classList.remove('hidden');
+    }
+    return s;
+  }
+  refreshGdriveStatus();
+
+  btnGdriveConnect.addEventListener('click', async () => {
+    const s = await window.retro.googleStatus();
+    if (s.connected) {
+      await window.retro.googleDisconnect();
+    } else {
+      btnGdriveConnect.disabled = true;
+      gdriveStatus.textContent = 'Google Drive: sign in from the browser tab that just opened…';
+      try {
+        await window.retro.googleConnect();
+      } catch (err) {
+        gdriveStatus.textContent = `Google Drive: ${err.message || 'connection failed'}`;
+        btnGdriveConnect.disabled = false;
+        return;
+      }
+      btnGdriveConnect.disabled = false;
+    }
+    refreshGdriveStatus();
+  });
+
+  el('btnGdriveConfig').addEventListener('click', () => window.retro.googleOpenConfig());
+
+  el('btnGdriveLoad').addEventListener('click', async () => {
+    const input = gdriveFolderInput.value.trim();
+    if (!input) return;
+    const btnLoad = el('btnGdriveLoad');
+    btnLoad.disabled = true;
+    btnLoad.textContent = 'Loading…';
+    try {
+      const files = await window.retro.googleListFolder(input);
+      addDriveFiles(files);
+    } catch (err) {
+      gdriveStatus.textContent = `Google Drive: ${err.message || 'load failed'}`;
+    }
+    btnLoad.disabled = false;
+    btnLoad.textContent = 'Load';
   });
 
   btnShuffle.addEventListener('click', () => {
@@ -253,21 +377,48 @@
   balance.addEventListener('input', () => { panner.pan.value = balance.value / 100; });
 
   // ---------- Equalizer ----------
-  el('preamp').addEventListener('input', (e) => {
-    preampGain.gain.value = dbToGain(parseFloat(e.target.value));
-  });
-  document.querySelectorAll('.eqBandSlider').forEach((sliderEl, i) => {
-    sliderEl.addEventListener('input', () => {
-      eqFilters[i].gain.value = parseFloat(sliderEl.value);
-    });
-  });
-  el('btnEqReset').addEventListener('click', () => {
-    el('preamp').value = 0;
+  const preampSlider = el('preamp');
+  const bandSliders = Array.from(document.querySelectorAll('.eqBandSlider'));
+
+  function applyEqFromSliders() {
+    if (!eqEnabled) return;
+    preampGain.gain.value = dbToGain(parseFloat(preampSlider.value));
+    bandSliders.forEach((s, i) => { eqFilters[i].gain.value = parseFloat(s.value); });
+  }
+  function bypassEq() {
     preampGain.gain.value = 1;
-    document.querySelectorAll('.eqBandSlider').forEach((s, i) => {
-      s.value = 0;
-      eqFilters[i].gain.value = 0;
-    });
+    eqFilters.forEach((f) => { f.gain.value = 0; });
+  }
+
+  preampSlider.addEventListener('input', applyEqFromSliders);
+  bandSliders.forEach((sliderEl) => sliderEl.addEventListener('input', applyEqFromSliders));
+
+  const eqOnToggle = el('eqOnToggle');
+  const eqAutoToggle = el('eqAutoToggle');
+  eqOnToggle.classList.add('on');
+  eqOnToggle.addEventListener('click', () => {
+    eqEnabled = !eqEnabled;
+    eqOnToggle.classList.toggle('on', eqEnabled);
+    if (eqEnabled) applyEqFromSliders(); else bypassEq();
+  });
+  eqAutoToggle.addEventListener('click', () => {
+    eqAutoToggle.classList.toggle('on');
+  });
+
+  const eqPresets = {
+    flat:      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    rock:      [4, 4, 3, 1, -1, -1, 0, 2, 3, 3, 3],
+    pop:       [2, -1, -2, -1, 1, 3, 4, 4, 3, 2, 2],
+    bass:      [6, 8, 7, 5, 2, 0, -1, -1, -1, -1, -1],
+    treble:    [-3, -3, -2, -1, 0, 1, 3, 5, 6, 7, 7],
+    classical: [0, 3, 3, 3, 2, 0, -2, -2, -2, -3, -4],
+    dance:     [5, 6, 3, 0, 0, -2, -3, -3, 0, 2, 2],
+  };
+  el('eqPresets').addEventListener('change', (e) => {
+    const vals = eqPresets[e.target.value] || eqPresets.flat;
+    preampSlider.value = vals[0];
+    bandSliders.forEach((s, i) => { s.value = vals[i + 1]; });
+    applyEqFromSliders();
   });
 
   // ---------- Visualizer ----------

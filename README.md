@@ -66,6 +66,39 @@ npm start        # run it directly with Electron, no packaging
 - 📌 in the title bar: keep the window always-on-top.
 - Click the time display to toggle elapsed / remaining time.
 
+## Playing music from Google Drive
+
+You can also pull your own music files straight from a Google Drive folder,
+instead of (or alongside) local files. This only ever touches files you
+already own in your own Drive — it's not a streaming service integration.
+
+**One-time setup (you do this once):**
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/) and
+   create a new project (any name).
+2. Under **APIs & Services → Library**, enable the **Google Drive API**.
+3. Under **APIs & Services → OAuth consent screen**: choose **External**,
+   fill in the required fields, and add your own Google account under
+   **Test users**. Leaving it in "Testing" mode is fine — it's just for you.
+4. Under **APIs & Services → Credentials → Create Credentials → OAuth client
+   ID**: choose **Desktop app**, give it any name, and create it.
+5. Copy the **Client ID** and **Client secret** it gives you.
+
+**In the app:**
+
+1. Open **PL** (playlist panel) → click **Setup**. This opens the folder
+   containing `google-oauth-config.json` — edit that file and paste in your
+   Client ID and Client secret, then save.
+2. Restart Retrowamp, open **PL** again, and click **Connect**. Your browser
+   opens Google's sign-in — approve access, then return to the app.
+3. Paste a Google Drive **folder link** (or just the folder ID) into the box
+   that appears, and click **Load**. Every audio file in that folder gets
+   added to the playlist.
+
+Tracks play by downloading the file's bytes over the Drive API each time
+(not a persistent sync) — fine for normal song sizes, but very large files
+will take a moment to start playing.
+
 ## Notes
 
 - This is an original UI *inspired by* the classic Winamp look — it does not

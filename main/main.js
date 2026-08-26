@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const path = require('node:path');
+const googleDrive = require('./google-drive');
 
 let mainWindow;
 
@@ -62,3 +63,10 @@ ipcMain.handle('files:open-dialog', async () => {
   if (result.canceled) return [];
   return result.filePaths;
 });
+
+ipcMain.handle('google:status', () => googleDrive.status());
+ipcMain.handle('google:connect', () => googleDrive.connect());
+ipcMain.handle('google:disconnect', () => { googleDrive.disconnect(); return googleDrive.status(); });
+ipcMain.handle('google:list-folder', (_e, folderIdOrUrl) => googleDrive.listAudioInFolder(folderIdOrUrl));
+ipcMain.handle('google:get-track', (_e, fileId) => googleDrive.getFileBytesBase64(fileId));
+ipcMain.handle('google:open-config', () => shell.showItemInFolder(googleDrive.configPath()));

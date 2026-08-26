@@ -11,9 +11,9 @@
     <!-- Title bar -->
     <div id="titlebar" class="drag">
       <span class="dot" id="pwrDot"></span>
-      <span class="title">R E T R O W A M P</span>
+      <span class="title">RETROWAMP</span>
       <div class="titlebtns nodrag">
-        <button id="btnPin" title="Always on top">📌</button>
+        <button id="btnPin" title="Always on top">◆</button>
         <button id="btnMin" title="Minimize">_</button>
         <button id="btnClose" title="Close">×</button>
       </div>
@@ -40,12 +40,12 @@
 
       <div id="controlsRow">
         <div class="transport">
-          <button class="tbtn" id="btnPrev" title="Previous">⏮</button>
-          <button class="tbtn" id="btnPlay" title="Play">▶</button>
-          <button class="tbtn" id="btnPause" title="Pause">⏸</button>
-          <button class="tbtn" id="btnStop" title="Stop">⏹</button>
-          <button class="tbtn" id="btnNext" title="Next">⏭</button>
-          <button class="tbtn" id="btnOpen" title="Add files…">⏏</button>
+          <button class="tbtn" id="btnPrev" title="Previous">◄◄</button>
+          <button class="tbtn" id="btnPlay" title="Play">►</button>
+          <button class="tbtn" id="btnPause" title="Pause">❚❚</button>
+          <button class="tbtn" id="btnStop" title="Stop">■</button>
+          <button class="tbtn" id="btnNext" title="Next">►►</button>
+          <button class="tbtn" id="btnOpen" title="Add files…">▲</button>
         </div>
 
         <div class="slidersMini">
@@ -66,34 +66,61 @@
 
     <!-- Equalizer panel -->
     <div id="eqPanel" class="panel hidden">
-      <div class="panelHeader">EQUALIZER</div>
-      <div id="eqBands">
-        <div class="eqBand">
-          <input type="range" min="-12" max="12" value="0" step="0.5" orient="vertical" class="eqSlider" id="preamp" />
-          <span>PRE</span>
-        </div>
-        <div class="eqSep"></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="60" /><span>60</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="170" /><span>170</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="310" /><span>310</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="600" /><span>600</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="1000" /><span>1K</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="3000" /><span>3K</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="6000" /><span>6K</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="12000" /><span>12K</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="14000" /><span>14K</span></div>
-        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="16000" /><span>16K</span></div>
+      <div class="panelHeader">
+        <span class="eqCheck nodrag" id="eqOnToggle"><span class="box"></span>ON</span>
+        <span class="eqCheck nodrag" id="eqAutoToggle" title="Auto EQ per track — not implemented"><span class="box"></span>AUTO</span>
+        <span class="flexSpace"></span>
+        <select id="eqPresets" class="smallbtn presetSelect" title="Presets">
+          <option value="flat">Flat</option>
+          <option value="rock">Rock</option>
+          <option value="pop">Pop</option>
+          <option value="bass">Bass Boost</option>
+          <option value="treble">Treble Boost</option>
+          <option value="classical">Classical</option>
+          <option value="dance">Dance</option>
+        </select>
       </div>
-      <button id="btnEqReset" class="smallbtn">RESET</button>
+      <div id="eqBody">
+        <div class="dbScale"><span>+12</span><span>0</span><span>-12</span></div>
+        <div id="eqBands">
+          <div class="eqBand">
+            <input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider" id="preamp" />
+            <span>PRE</span>
+          </div>
+          <div class="eqSep"></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="60" /><span>60</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="170" /><span>170</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="310" /><span>310</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="600" /><span>600</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="1000" /><span>1K</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="3000" /><span>3K</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="6000" /><span>6K</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="12000" /><span>12K</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="14000" /><span>14K</span></div>
+          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="16000" /><span>16K</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- Playlist panel -->
     <div id="plPanel" class="panel hidden">
       <div class="panelHeader">PLAYLIST
         <button id="btnAdd" class="smallbtn">ADD</button>
+        <button id="btnRem" class="smallbtn">REM</button>
         <button id="btnClear" class="smallbtn">CLEAR</button>
       </div>
-      <div id="dropHint">Drag audio files here, or click ADD</div>
+      <div id="dropHint">Drag audio files here, click ADD, or double-click a track to play it.</div>
+
+      <div id="gdriveBar">
+        <span id="gdriveStatus" class="gdriveStatus">Google Drive: checking…</span>
+        <button id="btnGdriveConnect" class="smallbtn">Connect</button>
+        <button id="btnGdriveConfig" class="smallbtn" title="Open the config file to add your Google OAuth credentials">Setup</button>
+      </div>
+      <div id="gdriveFolderRow" class="hidden">
+        <input id="gdriveFolderInput" type="text" placeholder="Paste a Google Drive folder link or ID…" />
+        <button id="btnGdriveLoad" class="smallbtn">Load</button>
+      </div>
+
       <ul id="plList"></ul>
     </div>
 
