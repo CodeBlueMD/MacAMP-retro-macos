@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Retrowamp</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="shell">
+
+    <!-- Title bar -->
+    <div id="titlebar" class="drag">
+      <span class="dot" id="pwrDot"></span>
+      <span class="title">R E T R O W A M P</span>
+      <div class="titlebtns nodrag">
+        <button id="btnPin" title="Always on top">📌</button>
+        <button id="btnMin" title="Minimize">_</button>
+        <button id="btnClose" title="Close">×</button>
+      </div>
+    </div>
+
+    <!-- Main player -->
+    <div id="player">
+      <div id="lcd">
+        <canvas id="viz" width="76" height="32"></canvas>
+        <div id="lcdText">
+          <div id="trackScroll"><span id="trackName">No file loaded.</span></div>
+          <div id="metaRow">
+            <span id="timeDisplay">00:00</span>
+            <span id="kbps">--- kbps</span>
+            <span id="khz">-- kHz</span>
+            <span id="stereoTag">STEREO</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="seekRow">
+        <input id="seek" type="range" min="0" max="1000" value="0" step="1" />
+      </div>
+
+      <div id="controlsRow">
+        <div class="transport">
+          <button class="tbtn" id="btnPrev" title="Previous">⏮</button>
+          <button class="tbtn" id="btnPlay" title="Play">▶</button>
+          <button class="tbtn" id="btnPause" title="Pause">⏸</button>
+          <button class="tbtn" id="btnStop" title="Stop">⏹</button>
+          <button class="tbtn" id="btnNext" title="Next">⏭</button>
+          <button class="tbtn" id="btnOpen" title="Add files…">⏏</button>
+        </div>
+
+        <div class="slidersMini">
+          <label>VOL</label>
+          <input id="volume" type="range" min="0" max="100" value="80" />
+          <label>BAL</label>
+          <input id="balance" type="range" min="-100" max="100" value="0" />
+        </div>
+      </div>
+
+      <div id="toggleRow">
+        <button class="togglebtn" id="btnShuffle" title="Shuffle">SHUF</button>
+        <button class="togglebtn" id="btnRepeat" title="Repeat">REP</button>
+        <button class="togglebtn" id="btnEQ" title="Equalizer">EQ</button>
+        <button class="togglebtn" id="btnPL" title="Playlist">PL</button>
+      </div>
+    </div>
+
+    <!-- Equalizer panel -->
+    <div id="eqPanel" class="panel hidden">
+      <div class="panelHeader">EQUALIZER</div>
+      <div id="eqBands">
+        <div class="eqBand">
+          <input type="range" min="-12" max="12" value="0" step="0.5" orient="vertical" class="eqSlider" id="preamp" />
+          <span>PRE</span>
+        </div>
+        <div class="eqSep"></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="60" /><span>60</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="170" /><span>170</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="310" /><span>310</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="600" /><span>600</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="1000" /><span>1K</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="3000" /><span>3K</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="6000" /><span>6K</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="12000" /><span>12K</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="14000" /><span>14K</span></div>
+        <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="16000" /><span>16K</span></div>
+      </div>
+      <button id="btnEqReset" class="smallbtn">RESET</button>
+    </div>
+
+    <!-- Playlist panel -->
+    <div id="plPanel" class="panel hidden">
+      <div class="panelHeader">PLAYLIST
+        <button id="btnAdd" class="smallbtn">ADD</button>
+        <button id="btnClear" class="smallbtn">CLEAR</button>
+      </div>
+      <div id="dropHint">Drag audio files here, or click ADD</div>
+      <ul id="plList"></ul>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
