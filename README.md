@@ -8,6 +8,10 @@ playlist save/load, and a real audio engine (plays your own local
 MP3/WAV/M4A/AAC/OGG/FLAC files, or your own files pulled from Google Drive
 — this does not connect to any streaming service).
 
+## Screenshots
+
+![MacAMP main window](screenshots/macamp-main.png)
+
 ## Install on your Mac — no Terminal needed (recommended)
 
 A GitHub Actions workflow builds the `.dmg` on a real macOS machine in the
@@ -16,7 +20,7 @@ cloud and attaches it to a GitHub Release.
 1. Go to the **Actions** tab of this repo → **Build macOS App** (left sidebar).
 2. Click **Run workflow** → **Run workflow** (leave the branch as `main`).
 3. Wait ~3–5 minutes for it to finish (green check).
-4. Open the finished run → under **Artifacts**, download **Retrowamp-macOS**
+4. Open the finished run → under **Artifacts**, download **MacAMP-macOS**
    (a zip containing the `.dmg`).
    - To also get it on the repo's **Releases** page (a permanent download
      link), instead push a version tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`

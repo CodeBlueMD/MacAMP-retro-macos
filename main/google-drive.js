@@ -101,7 +101,7 @@ async function connect() {
         reject(new Error('OAuth state mismatch'));
         return;
       }
-      res.end('<html><body style="font-family:sans-serif">Retrowamp is connected to Google Drive. You can close this tab.</body></html>');
+      res.end('<html><body style="font-family:sans-serif">MacAMP is connected to Google Drive. You can close this tab.</body></html>');
       server.close();
       resolve(url.searchParams.get('code'));
     });
