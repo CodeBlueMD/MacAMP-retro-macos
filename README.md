@@ -1,11 +1,12 @@
-# Retrowamp
+# MacAMP
 
 A retro Winamp-style desktop music player for macOS, built with Electron.
-Classic-skin look (LCD display, chunky bevel buttons, marquee track name,
-green LED-style spectrum visualizer), a real 10-band + preamp equalizer,
-playlist with drag-and-drop, shuffle/repeat, and a real audio engine
-(plays your own local MP3/WAV/M4A/AAC/OGG/FLAC files — this does not
-connect to any streaming service).
+Multi-window layout (Player / Equalizer / Playlist Editor, all draggable),
+several switchable color themes, a real 10-band + preamp equalizer,
+crossfade, speed/pitch control, a sleep timer, folder import, `.m3u`
+playlist save/load, and a real audio engine (plays your own local
+MP3/WAV/M4A/AAC/OGG/FLAC files, or your own files pulled from Google Drive
+— this does not connect to any streaming service).
 
 ## Install on your Mac — no Terminal needed (recommended)
 
@@ -20,11 +21,11 @@ cloud and attaches it to a GitHub Release.
    - To also get it on the repo's **Releases** page (a permanent download
      link), instead push a version tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`
      — that triggers the same workflow and publishes the `.dmg` as a Release.
-5. Unzip, open the `.dmg`, and drag **Retrowamp** into **Applications**,
+5. Unzip, open the `.dmg`, and drag **MacAMP** into **Applications**,
    same as installing VLC.
 6. First launch: since the app isn't signed with an Apple Developer
    certificate, macOS Gatekeeper will block it once. Right-click
-   **Retrowamp** in Applications → **Open** → **Open**. After that it opens
+   **MacAMP** in Applications → **Open** → **Open**. After that it opens
    normally like any other app.
 
 ## Install on your Mac (build the .dmg yourself)
@@ -40,8 +41,8 @@ any other downloaded app.
    npm install
    npm run dist
    ```
-3. This produces `release/Retrowamp-1.0.0-mac.dmg` (and a `.zip`). Open the
-   `.dmg` and drag **Retrowamp** into **Applications**, same as installing VLC.
+3. This produces `release/MacAMP-1.0.0.dmg` (and a `.zip`). Open the
+   `.dmg` and drag **MacAMP** into **Applications**, same as installing VLC.
 4. First launch: since the app isn't signed with an Apple Developer
    certificate, macOS Gatekeeper will block it the first time. Either:
    - Right-click the app → **Open** → **Open** (one-time), or
@@ -58,13 +59,27 @@ npm start        # run it directly with Electron, no packaging
 
 ## Using it
 
-- **⏏ (eject) button** or **PL → ADD**: add audio files to the playlist.
-- Drag & drop audio files onto the window to add them.
-- Double-click a playlist entry to play it.
-- **EQ** button: opens a 10-band equalizer + preamp (real Web Audio filters).
-- **SHUF** / **REP**: shuffle and repeat toggles.
-- 📌 in the title bar: keep the window always-on-top.
-- Click the time display to toggle elapsed / remaining time.
+- **Player window**: transport controls, seek, volume/balance, LCD track
+  display with a mini spectrum visualizer (click it to cycle Bars → Dots →
+  Oscilloscope → off).
+- **Playlist Editor**: drag files/folders in, or use **ADD FILE** / **ADD
+  DIR** in its toolbar (or the Library card below). **Jump to…** filters the
+  list live. **SORT** sorts alphabetically. Double-click a track to play it.
+- **Equalizer**: 10-band + preamp, **ON** to bypass, presets dropdown.
+  **AUTO** is a visual toggle only — genre-based auto-EQ isn't implemented.
+- The Player, Equalizer, and Playlist Editor windows can each be dragged by
+  their title bar independently; **Reset layout** (Look card) puts them back.
+- **Library** card: Add files/folder, Save/Load `.m3u` playlists, Clear.
+- **Playback** card: Crossfade (real overlapping fade between tracks),
+  Speed (real `playbackRate`) with **keep pitch** toggle, a Sleep timer, and
+  **auto-level** (a dynamics-compressor based leveler — not full multi-pass
+  loudness normalization, but a real, audible effect).
+- **Look** card: 6 real color themes, a compact/large size toggle, best-effort
+  album art (MP3 ID3v2 `APIC` tag only — other formats won't show art),
+  and a fullscreen player toggle.
+- **Visualiser** card: 3 render modes, sensitivity, and a fullscreen overlay.
+- **Shortcuts**: Space play/pause, ←/→ seek, ↑/↓ volume, N/P next/prev,
+  S shuffle, R repeat, J jump-to search, Esc exits fullscreen.
 
 ## Playing music from Google Drive
 
@@ -86,11 +101,11 @@ already own in your own Drive — it's not a streaming service integration.
 
 **In the app:**
 
-1. Open **PL** (playlist panel) → click **Setup**. This opens the folder
+1. In the Playlist Editor window, click **Setup**. This opens the folder
    containing `google-oauth-config.json` — edit that file and paste in your
    Client ID and Client secret, then save.
-2. Restart Retrowamp, open **PL** again, and click **Connect**. Your browser
-   opens Google's sign-in — approve access, then return to the app.
+2. Restart MacAMP and click **Connect**. Your browser opens Google's
+   sign-in — approve access, then return to the app.
 3. Paste a Google Drive **folder link** (or just the folder ID) into the box
    that appears, and click **Load**. Every audio file in that folder gets
    added to the playlist.

@@ -2,128 +2,265 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Retrowamp</title>
+<title>MacAMP</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="shell">
+  <div id="app">
 
-    <!-- Title bar -->
-    <div id="titlebar" class="drag">
-      <span class="dot" id="pwrDot"></span>
-      <span class="title">RETROWAMP</span>
-      <div class="titlebtns nodrag">
-        <button id="btnPin" title="Always on top">◆</button>
-        <button id="btnMin" title="Minimize">_</button>
-        <button id="btnClose" title="Close">×</button>
-      </div>
-    </div>
+    <div id="stage">
 
-    <!-- Main player -->
-    <div id="player">
-      <div id="lcd">
-        <canvas id="viz" width="76" height="32"></canvas>
-        <div id="lcdText">
-          <div id="trackScroll"><span id="trackName">No file loaded.</span></div>
-          <div id="metaRow">
-            <span id="timeDisplay">00:00</span>
-            <span id="kbps">--- kbps</span>
-            <span id="khz">-- kHz</span>
-            <span id="stereoTag">STEREO</span>
+      <!-- Player window (drags the OS window) -->
+      <div id="playerWin" class="winpanel">
+        <div class="wintitle drag">
+          <span class="dot" id="pwrDot"></span>
+          <span class="wintitleText">MACAMP</span>
+          <div class="wintitlebtns nodrag">
+            <button id="btnFullscreen" title="Fullscreen player">⛶</button>
+            <button id="btnPin" title="Always on top">◆</button>
+            <button id="btnMin" title="Minimize">_</button>
+            <button id="btnClose" title="Close">×</button>
+          </div>
+        </div>
+        <div class="winbody">
+          <div id="lcd">
+            <canvas id="viz" width="90" height="40"></canvas>
+            <div id="lcdText">
+              <div id="trackScroll"><span id="trackName">drop your music here — it real</span></div>
+              <div id="metaRow">
+                <span id="timeDisplay">0:00</span>
+                <span id="kbps">-- kbps</span>
+                <span id="khz">-- kHz</span>
+                <span id="stereoTag">MONO STEREO</span>
+              </div>
+            </div>
+            <img id="albumArt" alt="" />
+          </div>
+
+          <div id="seekRow">
+            <input id="seek" type="range" min="0" max="1000" value="0" step="1" />
+          </div>
+
+          <div id="controlsRow">
+            <div class="transport">
+              <button class="tbtn" id="btnPrev" title="Previous">◄◄</button>
+              <button class="tbtn" id="btnPlay" title="Play">►</button>
+              <button class="tbtn" id="btnPause" title="Pause">❚❚</button>
+              <button class="tbtn" id="btnStop" title="Stop">■</button>
+              <button class="tbtn" id="btnNext" title="Next">►►</button>
+              <button class="tbtn" id="btnOpen" title="Add files…">▲</button>
+            </div>
+            <div class="slidersMini">
+              <label>VOL</label>
+              <input id="volume" type="range" min="0" max="100" value="80" />
+              <label>BAL</label>
+              <input id="balance" type="range" min="-100" max="100" value="0" />
+            </div>
+          </div>
+
+          <div id="toggleRow">
+            <button class="togglebtn" id="btnShuffle" title="Shuffle [S]">SHUFFLE</button>
+            <button class="togglebtn" id="btnRepeat" title="Repeat [R]">REP</button>
+            <button class="togglebtn" id="btnEQ" title="Equalizer">EQ</button>
+            <button class="togglebtn" id="btnPL" title="Playlist">PL</button>
           </div>
         </div>
       </div>
 
-      <div id="seekRow">
-        <input id="seek" type="range" min="0" max="1000" value="0" step="1" />
-      </div>
-
-      <div id="controlsRow">
-        <div class="transport">
-          <button class="tbtn" id="btnPrev" title="Previous">◄◄</button>
-          <button class="tbtn" id="btnPlay" title="Play">►</button>
-          <button class="tbtn" id="btnPause" title="Pause">❚❚</button>
-          <button class="tbtn" id="btnStop" title="Stop">■</button>
-          <button class="tbtn" id="btnNext" title="Next">►►</button>
-          <button class="tbtn" id="btnOpen" title="Add files…">▲</button>
-        </div>
-
-        <div class="slidersMini">
-          <label>VOL</label>
-          <input id="volume" type="range" min="0" max="100" value="80" />
-          <label>BAL</label>
-          <input id="balance" type="range" min="-100" max="100" value="0" />
-        </div>
-      </div>
-
-      <div id="toggleRow">
-        <button class="togglebtn" id="btnShuffle" title="Shuffle">SHUF</button>
-        <button class="togglebtn" id="btnRepeat" title="Repeat">REP</button>
-        <button class="togglebtn" id="btnEQ" title="Equalizer">EQ</button>
-        <button class="togglebtn" id="btnPL" title="Playlist">PL</button>
-      </div>
-    </div>
-
-    <!-- Equalizer panel -->
-    <div id="eqPanel" class="panel hidden">
-      <div class="panelHeader">
-        <span class="eqCheck nodrag" id="eqOnToggle"><span class="box"></span>ON</span>
-        <span class="eqCheck nodrag" id="eqAutoToggle" title="Auto EQ per track — not implemented"><span class="box"></span>AUTO</span>
-        <span class="flexSpace"></span>
-        <select id="eqPresets" class="smallbtn presetSelect" title="Presets">
-          <option value="flat">Flat</option>
-          <option value="rock">Rock</option>
-          <option value="pop">Pop</option>
-          <option value="bass">Bass Boost</option>
-          <option value="treble">Treble Boost</option>
-          <option value="classical">Classical</option>
-          <option value="dance">Dance</option>
-        </select>
-      </div>
-      <div id="eqBody">
-        <div class="dbScale"><span>+12</span><span>0</span><span>-12</span></div>
-        <div id="eqBands">
-          <div class="eqBand">
-            <input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider" id="preamp" />
-            <span>PRE</span>
+      <!-- Playlist Editor window -->
+      <div id="plWin" class="winpanel">
+        <div class="wintitle nodrag" data-dragtarget="plWin">
+          <span class="wintitleText">PLAYLIST EDITOR</span>
+          <div class="wintitlebtns">
+            <button class="winMinBtn" data-target="plWin" title="Hide">_</button>
+            <button class="winCloseBtn" data-target="plWin" title="Hide">×</button>
           </div>
-          <div class="eqSep"></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="60" /><span>60</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="170" /><span>170</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="310" /><span>310</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="600" /><span>600</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="1000" /><span>1K</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="3000" /><span>3K</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="6000" /><span>6K</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="12000" /><span>12K</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="14000" /><span>14K</span></div>
-          <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="16000" /><span>16K</span></div>
+        </div>
+        <div class="winbody">
+          <input id="jumpTo" type="text" placeholder="jump to… (J)" />
+          <div id="dropHint">drop your music here<br/><span class="dim">or press ADD FILE / ADD DIR below</span><br/><span class="dim">mp3 · m4a · wav · ogg · flac</span><br/><span class="dim">nothing is uploaded — it all stays on your machine</span></div>
+
+          <div id="gdriveBar">
+            <span id="gdriveStatus" class="gdriveStatus">Google Drive: checking…</span>
+            <button id="btnGdriveConnect" class="smallbtn">Connect</button>
+            <button id="btnGdriveConfig" class="smallbtn" title="Open the config file to add your Google OAuth credentials">Setup</button>
+          </div>
+          <div id="gdriveFolderRow" class="hidden">
+            <input id="gdriveFolderInput" type="text" placeholder="Paste a Google Drive folder link or ID…" />
+            <button id="btnGdriveLoad" class="smallbtn">Load</button>
+          </div>
+
+          <ul id="plList"></ul>
+
+          <div class="plToolbar">
+            <button id="btnAddFile" class="smallbtn">ADD FILE</button>
+            <button id="btnAddDir" class="smallbtn">ADD DIR</button>
+            <button id="btnRem" class="smallbtn">REM</button>
+            <button id="btnSort" class="smallbtn">SORT</button>
+            <button id="btnClear" class="smallbtn">CLEAR</button>
+            <span class="flexSpace"></span>
+            <span id="plFooter">0 tracks · 0:00</span>
+          </div>
         </div>
       </div>
+
+      <!-- Equalizer window -->
+      <div id="eqWin" class="winpanel">
+        <div class="wintitle nodrag" data-dragtarget="eqWin">
+          <span class="wintitleText">EQUALIZER</span>
+          <div class="wintitlebtns">
+            <button class="winMinBtn" data-target="eqWin" title="Hide">_</button>
+            <button class="winCloseBtn" data-target="eqWin" title="Hide">×</button>
+          </div>
+        </div>
+        <div class="winbody">
+          <div class="panelHeader">
+            <span class="eqCheck nodrag" id="eqOnToggle"><span class="box"></span>ON</span>
+            <span class="eqCheck nodrag" id="eqAutoToggle" title="Auto EQ per track — not implemented"><span class="box"></span>AUTO</span>
+            <span class="flexSpace"></span>
+            <select id="eqPresets" class="smallbtn presetSelect" title="Presets">
+              <option value="flat">— preset —</option>
+              <option value="flat">Flat</option>
+              <option value="rock">Rock</option>
+              <option value="pop">Pop</option>
+              <option value="bass">Bass Boost</option>
+              <option value="treble">Treble Boost</option>
+              <option value="classical">Classical</option>
+              <option value="dance">Dance</option>
+            </select>
+          </div>
+          <div id="eqBody">
+            <div class="dbScale"><span>+12</span><span>0</span><span>-12</span></div>
+            <div id="eqBands">
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider" id="preamp" /><span>PRE</span></div>
+              <div class="eqSep"></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="60" /><span>60</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="170" /><span>170</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="310" /><span>310</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="600" /><span>600</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="1000" /><span>1K</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="3000" /><span>3K</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="6000" /><span>6K</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="12000" /><span>12K</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="14000" /><span>14K</span></div>
+              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="16000" /><span>16K</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
-    <!-- Playlist panel -->
-    <div id="plPanel" class="panel hidden">
-      <div class="panelHeader">PLAYLIST
-        <button id="btnAdd" class="smallbtn">ADD</button>
-        <button id="btnRem" class="smallbtn">REM</button>
-        <button id="btnClear" class="smallbtn">CLEAR</button>
-      </div>
-      <div id="dropHint">Drag audio files here, click ADD, or double-click a track to play it.</div>
+    <!-- Dashboard -->
+    <div id="dashboard">
 
-      <div id="gdriveBar">
-        <span id="gdriveStatus" class="gdriveStatus">Google Drive: checking…</span>
-        <button id="btnGdriveConnect" class="smallbtn">Connect</button>
-        <button id="btnGdriveConfig" class="smallbtn" title="Open the config file to add your Google OAuth credentials">Setup</button>
-      </div>
-      <div id="gdriveFolderRow" class="hidden">
-        <input id="gdriveFolderInput" type="text" placeholder="Paste a Google Drive folder link or ID…" />
-        <button id="btnGdriveLoad" class="smallbtn">Load</button>
+      <div class="card">
+        <div class="cardTitle">LIBRARY</div>
+        <button id="dashAddFile" class="bigbtn accent">+ Add files</button>
+        <button id="dashAddDir" class="bigbtn accent">📁 Add folder</button>
+        <div class="btnRow">
+          <button id="dashSaveM3u" class="smallbtn">⬇ Save .m3u</button>
+          <button id="dashLoadM3u" class="smallbtn">⬆ Load .m3u</button>
+          <button id="dashClear" class="smallbtn">✕ Clear</button>
+        </div>
+        <p class="hint">Drag music anywhere onto this page. Folders work too.<br/><b>Nothing is uploaded</b> — files are read straight from your disk.</p>
       </div>
 
-      <ul id="plList"></ul>
+      <div class="card">
+        <div class="cardTitle">PLAYBACK</div>
+        <div class="fieldRow">
+          <label>Crossfade</label>
+          <input id="crossfade" type="range" min="0" max="10" step="1" value="0" />
+          <span id="crossfadeVal" class="fieldVal">off</span>
+        </div>
+        <div class="fieldRow">
+          <label>Speed</label>
+          <input id="speed" type="range" min="0.5" max="2" step="0.05" value="1" />
+          <span id="speedVal" class="fieldVal">1.00×</span>
+        </div>
+        <div class="fieldRow">
+          <label>Sleep</label>
+          <select id="sleepSelect">
+            <option value="0">off</option>
+            <option value="10">10 min</option>
+            <option value="20">20 min</option>
+            <option value="30">30 min</option>
+            <option value="60">60 min</option>
+          </select>
+          <span id="sleepVal" class="fieldVal">—</span>
+        </div>
+        <label class="checkRow"><input type="checkbox" id="keepPitch" checked /> keep pitch</label>
+        <label class="checkRow"><input type="checkbox" id="autoLevel" /> auto-level</label>
+      </div>
+
+      <div class="card">
+        <div class="cardTitle">LOOK</div>
+        <div id="skinSwatches">
+          <button class="swatch" data-theme="base29" style="background:#3a3c41"><span>Base 2.9</span></button>
+          <button class="swatch" data-theme="modern" style="background:#1c2a3d"><span>Modern</span></button>
+          <button class="swatch" data-theme="amber" style="background:#221a08"><span>Amber</span></button>
+          <button class="swatch on" data-theme="cyber" style="background:#0a0f0c"><span>Cyber</span></button>
+          <button class="swatch" data-theme="vapor" style="background:#241535"><span>Vapor</span></button>
+          <button class="swatch" data-theme="midnight" style="background:#0b1226"><span>Midnight</span></button>
+        </div>
+        <div class="fieldRow">
+          <label>Size</label>
+          <select id="sizeSelect">
+            <option value="fit">auto fit</option>
+            <option value="compact">compact</option>
+            <option value="large">large</option>
+          </select>
+        </div>
+        <label class="checkRow"><input type="checkbox" id="albumArtToggle" /> Album art</label>
+        <button id="btnResetLayout" class="smallbtn">↺ Reset layout</button>
+        <button id="btnFullscreenPlayer" class="bigbtn accent">⛶ Fullscreen player</button>
+      </div>
+
+      <div class="card">
+        <div class="cardTitle">VISUALISER</div>
+        <div class="fieldRow">
+          <label>Preset</label>
+          <select id="vizPreset">
+            <option value="bars">Classic Bars</option>
+            <option value="dots">Dot Matrix</option>
+            <option value="scope">Oscilloscope</option>
+          </select>
+        </div>
+        <div class="fieldRow">
+          <label>Sensitivity</label>
+          <input id="vizSensitivity" type="range" min="50" max="200" step="5" value="100" />
+          <span id="vizSensVal" class="fieldVal">100</span>
+        </div>
+        <button id="btnFullscreenViz" class="bigbtn accent">⛶ Fullscreen visualiser</button>
+        <button id="btnShortcuts" class="smallbtn">⌘ Shortcuts</button>
+        <p class="hint">Click the small display in the main window to cycle the mini visualiser.</p>
+      </div>
+
     </div>
+  </div>
 
+  <!-- Fullscreen visualizer overlay -->
+  <div id="vizOverlay" class="hidden">
+    <canvas id="vizFull"></canvas>
+    <button id="btnExitViz" class="smallbtn">Exit [Esc]</button>
+  </div>
+
+  <!-- Shortcuts overlay -->
+  <div id="shortcutsOverlay" class="hidden">
+    <div id="shortcutsCard">
+      <div class="cardTitle">SHORTCUTS</div>
+      <ul>
+        <li><b>Space</b> — play / pause</li>
+        <li><b>←</b> / <b>→</b> — seek back / forward 5s</li>
+        <li><b>↑</b> / <b>↓</b> — volume up / down</li>
+        <li><b>N</b> / <b>P</b> — next / previous track</li>
+        <li><b>S</b> — shuffle</li>
+        <li><b>R</b> — repeat</li>
+        <li><b>J</b> — focus "jump to" search</li>
+        <li><b>Esc</b> — exit fullscreen visualiser</li>
+      </ul>
+      <button id="btnCloseShortcuts" class="smallbtn">Close</button>
+    </div>
   </div>
 
   <script src="app.js"></script>

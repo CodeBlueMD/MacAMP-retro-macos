@@ -1,10 +1,10 @@
 {
-  "name": "winamp-retro-macos",
-  "productName": "Retrowamp",
+  "name": "macamp",
+  "productName": "MacAMP",
   "version": "1.0.0",
   "description": "A retro Winamp-style music player for macOS, built with Electron.",
   "main": "main/main.js",
-  "author": "Retrowamp",
+  "author": "MacAMP",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -16,8 +16,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.retrowamp.app",
-    "productName": "Retrowamp",
+    "appId": "com.macamp.app",
+    "productName": "MacAMP",
     "publish": null,
     "files": [
       "main/**/*",
@@ -39,7 +39,7 @@
       "gatekeeperAssess": false
     },
     "dmg": {
-      "title": "Retrowamp Installer"
+      "title": "MacAMP Installer"
     }
   }
 }
