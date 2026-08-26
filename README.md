@@ -7,6 +7,26 @@ playlist with drag-and-drop, shuffle/repeat, and a real audio engine
 (plays your own local MP3/WAV/M4A/AAC/OGG/FLAC files — this does not
 connect to any streaming service).
 
+## Install on your Mac — no Terminal needed (recommended)
+
+A GitHub Actions workflow builds the `.dmg` on a real macOS machine in the
+cloud and attaches it to a GitHub Release.
+
+1. Go to the **Actions** tab of this repo → **Build macOS App** (left sidebar).
+2. Click **Run workflow** → **Run workflow** (leave the branch as `main`).
+3. Wait ~3–5 minutes for it to finish (green check).
+4. Open the finished run → under **Artifacts**, download **Retrowamp-macOS**
+   (a zip containing the `.dmg`).
+   - To also get it on the repo's **Releases** page (a permanent download
+     link), instead push a version tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`
+     — that triggers the same workflow and publishes the `.dmg` as a Release.
+5. Unzip, open the `.dmg`, and drag **Retrowamp** into **Applications**,
+   same as installing VLC.
+6. First launch: since the app isn't signed with an Apple Developer
+   certificate, macOS Gatekeeper will block it once. Right-click
+   **Retrowamp** in Applications → **Open** → **Open**. After that it opens
+   normally like any other app.
+
 ## Install on your Mac (build the .dmg yourself)
 
 Electron apps for macOS have to be packaged **on a Mac** (the `.dmg` step
