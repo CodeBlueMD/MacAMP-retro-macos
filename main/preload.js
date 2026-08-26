@@ -1,6 +1,13 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
+const path = require('node:path');
 
 contextBridge.exposeInMainWorld('retro', {
+  homeDirs: () => ipcRenderer.invoke('fs:home-dirs'),
+  listDir: (dirPath) => ipcRenderer.invoke('fs:list-dir', dirPath),
+  scanAudioDir: (dirPath) => ipcRenderer.invoke('fs:scan-audio-dir', dirPath),
+  dirname: (p) => path.dirname(p),
+  basename: (p) => path.basename(p),
+
   minimize: () => ipcRenderer.invoke('window:minimize'),
   close: () => ipcRenderer.invoke('window:close'),
   toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggle-always-on-top'),

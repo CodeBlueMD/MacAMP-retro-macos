@@ -61,8 +61,9 @@
           <div id="toggleRow">
             <button class="togglebtn" id="btnShuffle" title="Shuffle [S]">SHUFFLE</button>
             <button class="togglebtn" id="btnRepeat" title="Repeat [R]">REP</button>
-            <button class="togglebtn" id="btnEQ" title="Equalizer">EQ</button>
-            <button class="togglebtn" id="btnPL" title="Playlist">PL</button>
+            <button class="togglebtn on" id="btnEQ" title="Equalizer">EQ</button>
+            <button class="togglebtn on" id="btnPL" title="Playlist">PL</button>
+            <button class="togglebtn on" id="btnLib" title="Library">LIB</button>
           </div>
         </div>
       </div>
@@ -78,7 +79,7 @@
         </div>
         <div class="winbody">
           <input id="jumpTo" type="text" placeholder="jump to… (J)" />
-          <div id="dropHint">drop your music here<br/><span class="dim">or press ADD FILE / ADD DIR below</span><br/><span class="dim">mp3 · m4a · wav · ogg · flac</span><br/><span class="dim">nothing is uploaded — it all stays on your machine</span></div>
+          <div id="dropHint">drop your music here — <span class="dim">nothing is uploaded, it all stays on your machine</span></div>
 
           <div id="gdriveBar">
             <span id="gdriveStatus" class="gdriveStatus">Google Drive: checking…</span>
@@ -149,13 +150,37 @@
         </div>
       </div>
 
+      <!-- Library window: browse your computer's folders to find audio to add -->
+      <div id="libWin" class="winpanel">
+        <div class="wintitle nodrag" data-dragtarget="libWin">
+          <span class="wintitleText">LIBRARY</span>
+          <div class="wintitlebtns">
+            <button class="winMinBtn" data-target="libWin" title="Hide">_</button>
+            <button class="winCloseBtn" data-target="libWin" title="Hide">×</button>
+          </div>
+        </div>
+        <div class="winbody">
+          <div id="libQuickLinks"></div>
+          <div id="libBreadcrumbRow">
+            <button id="libUp" class="smallbtn" title="Up one level">⬆ Up</button>
+            <span id="libPath" class="libPath"></span>
+          </div>
+          <input id="libSearch" type="text" placeholder="filter this folder…" />
+          <ul id="libList"></ul>
+          <div class="plToolbar">
+            <button id="libAddSelected" class="smallbtn">Add Selected (0)</button>
+            <button id="libAddFolder" class="smallbtn">Add All Here</button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Dashboard -->
     <div id="dashboard">
 
       <div class="card">
-        <div class="cardTitle">LIBRARY</div>
+        <div class="cardTitle">FILES</div>
         <button id="dashAddFile" class="bigbtn accent">+ Add files</button>
         <button id="dashAddDir" class="bigbtn accent">📁 Add folder</button>
         <div class="btnRow">

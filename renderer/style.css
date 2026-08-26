@@ -74,7 +74,7 @@ html, body {
 .hidden { display: none !important; }
 
 /* ---------- Stage (draggable windows) ---------- */
-#stage { position: relative; height: 410px; margin-bottom: 16px; }
+#stage { position: relative; margin-bottom: 16px; }
 
 .winpanel {
   position: absolute;
@@ -87,8 +87,9 @@ html, body {
   flex-direction: column;
 }
 #playerWin { left: 0; top: 0; width: 535px; }
-#plWin { left: 551px; top: 0; width: 505px; height: 405px; }
-#eqWin { left: 0; top: 221px; width: 535px; }
+#plWin { left: 0; top: 0; width: 535px; height: 210px; }
+#eqWin { left: 0; top: 0; width: 535px; }
+#libWin { left: 0; top: 0; width: 505px; }
 
 .wintitle {
   display: flex; align-items: center; gap: 6px;
@@ -176,7 +177,7 @@ input[type=range]::-webkit-slider-thumb {
 .togglebtn.on { background: var(--accent); color: #06210f; }
 
 /* ---------- Playlist ---------- */
-#jumpTo {
+#jumpTo, #libSearch {
   width: 100%; font: 11px 'Courier New', monospace; background: var(--input-bg);
   border: 1px solid var(--panel-border); color: var(--text); padding: 6px 8px; border-radius: 3px;
 }
@@ -200,6 +201,23 @@ input[type=range]::-webkit-slider-thumb {
 
 .plToolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 #plFooter { font-size: 9px; color: var(--text-dim); }
+
+/* ---------- Library browser ---------- */
+#libQuickLinks { display: flex; gap: 6px; flex-wrap: wrap; }
+#libBreadcrumbRow { display: flex; align-items: center; gap: 6px; }
+.libPath { font-size: 9px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; direction: rtl; text-align: left; }
+#libList {
+  list-style: none; margin: 0; padding: 0; font-size: 11px; flex: 1; overflow-y: auto;
+  background: var(--input-bg); border: 1px solid var(--panel-border); border-radius: 3px; min-height: 0;
+}
+#libList li { display: flex; align-items: center; gap: 6px; padding: 3px 8px; cursor: pointer; }
+#libList li:hover { background: rgba(255,255,255,0.06); }
+#libList li.dir { color: var(--text-dim); font-weight: bold; }
+#libList li.file { color: var(--text); }
+#libList li.file.selected { background: var(--accent-2); color: #fff; }
+#libList li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#libList li.hiddenByFilter { display: none; }
+#libEmpty { font-size: 10px; color: var(--text-dim); text-align: center; padding: 14px 6px; }
 
 /* ---------- Google Drive ---------- */
 #gdriveBar { display: flex; align-items: center; gap: 6px; font-size: 9px; }

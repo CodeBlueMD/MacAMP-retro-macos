@@ -82,13 +82,17 @@
   const volume = el('volume');
   const balance = el('balance');
   const plList = el('plList');
+  const playerWin = el('playerWin');
   const eqWin = el('eqWin');
   const plWin = el('plWin');
+  const libWin = el('libWin');
+  const stage = el('stage');
   const btnPlay = el('btnPlay');
   const btnShuffle = el('btnShuffle');
   const btnRepeat = el('btnRepeat');
   const btnEQ = el('btnEQ');
   const btnPL = el('btnPL');
+  const btnLib = el('btnLib');
   const vizCanvas = el('viz');
   const vizCtx = vizCanvas.getContext('2d');
   const albumArt = el('albumArt');
@@ -111,11 +115,31 @@
       target.classList.add('hidden');
       if (btn.dataset.target === 'eqWin') btnEQ.classList.remove('on');
       if (btn.dataset.target === 'plWin') btnPL.classList.remove('on');
+      if (btn.dataset.target === 'libWin') btnLib.classList.remove('on');
     });
   });
 
-  // ---------- Draggable sub-windows ----------
-  function makeDraggable(panel, handle, storageKey) {
+  // ---------- Layout: Player -> Playlist -> Equalizer stacked on the left,
+  // Library filling the full-height column on the right (computed from the
+  // actual rendered panel heights, so it holds up across themes/sizes). ----
+  const GAP = 14;
+  function computeDefaultPositions() {
+    playerWin.style.left = '0px'; playerWin.style.top = '0px';
+    const playerH = playerWin.offsetHeight;
+    const plH = plWin.offsetHeight;
+    const eqH = eqWin.offsetHeight;
+    const leftW = playerWin.offsetWidth;
+    const totalH = playerH + GAP + plH + GAP + eqH;
+    stage.style.height = totalH + 'px';
+    libWin.style.height = totalH + 'px';
+    return {
+      plWin: { left: 0, top: playerH + GAP },
+      eqWin: { left: 0, top: playerH + GAP + plH + GAP },
+      libWin: { left: leftW + GAP, top: 0 },
+    };
+  }
+
+  function makeDraggable(panel, handle, storageKey, defaultPos) {
     let startX, startY, startLeft, startTop, dragging = false;
     handle.addEventListener('pointerdown', (e) => {
       if (e.target.closest('button')) return;
@@ -137,18 +161,23 @@
       localStorage.setItem(storageKey, JSON.stringify({ left: panel.offsetLeft, top: panel.offsetTop }));
     });
     const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try { const { left, top } = JSON.parse(saved); panel.style.left = left + 'px'; panel.style.top = top + 'px'; } catch {}
-    }
+    const pos = saved ? JSON.parse(saved) : defaultPos;
+    panel.style.left = pos.left + 'px'; panel.style.top = pos.top + 'px';
   }
-  makeDraggable(plWin, plWin.querySelector('.wintitle'), 'macamp.pos.plWin');
-  makeDraggable(eqWin, eqWin.querySelector('.wintitle'), 'macamp.pos.eqWin');
+
+  const defaults = computeDefaultPositions();
+  makeDraggable(plWin, plWin.querySelector('.wintitle'), 'macamp.pos.plWin', defaults.plWin);
+  makeDraggable(eqWin, eqWin.querySelector('.wintitle'), 'macamp.pos.eqWin', defaults.eqWin);
+  makeDraggable(libWin, libWin.querySelector('.wintitle'), 'macamp.pos.libWin', defaults.libWin);
 
   el('btnResetLayout').addEventListener('click', () => {
     localStorage.removeItem('macamp.pos.plWin');
     localStorage.removeItem('macamp.pos.eqWin');
-    plWin.style.left = ''; plWin.style.top = '';
-    eqWin.style.left = ''; eqWin.style.top = '';
+    localStorage.removeItem('macamp.pos.libWin');
+    const d = computeDefaultPositions();
+    plWin.style.left = d.plWin.left + 'px'; plWin.style.top = d.plWin.top + 'px';
+    eqWin.style.left = d.eqWin.left + 'px'; eqWin.style.top = d.eqWin.top + 'px';
+    libWin.style.left = d.libWin.left + 'px'; libWin.style.top = d.libWin.top + 'px';
   });
 
   // ---------- Theme + size ----------
@@ -435,6 +464,10 @@
     const willShow = plWin.classList.contains('hidden');
     plWin.classList.toggle('hidden', !willShow); btnPL.classList.toggle('on', willShow);
   });
+  btnLib.addEventListener('click', () => {
+    const willShow = libWin.classList.contains('hidden');
+    libWin.classList.toggle('hidden', !willShow); btnLib.classList.toggle('on', willShow);
+  });
 
   // ---------- Seek ----------
   seek.addEventListener('input', () => { seeking = true; });
@@ -667,6 +700,89 @@
     } catch { hideAlbumArt(); }
   }
   el('albumArtToggle').addEventListener('change', () => { if (currentIndex !== -1) tryLoadAlbumArt(playlist[currentIndex]); else hideAlbumArt(); });
+
+  // ---------- Library browser (navigate your own folders to pick audio) ----------
+  const libList = el('libList');
+  const libPathEl = el('libPath');
+  const libQuickLinks = el('libQuickLinks');
+  const libSearch = el('libSearch');
+  const libAddSelectedBtn = el('libAddSelected');
+  let libCurrentPath = null;
+  let libEntries = { dirs: [], files: [] };
+  const librarySelected = new Set();
+
+  function libRenderList() {
+    libList.innerHTML = '';
+    for (const dirPath of libEntries.dirs) {
+      const li = document.createElement('li');
+      li.className = 'dir';
+      li.innerHTML = `<span>📁</span><span class="name">${window.retro.basename(dirPath)}</span>`;
+      li.addEventListener('click', () => libNavigate(dirPath));
+      libList.appendChild(li);
+    }
+    for (const filePath of libEntries.files) {
+      const li = document.createElement('li');
+      li.className = 'file' + (librarySelected.has(filePath) ? ' selected' : '');
+      li.innerHTML = `<span>🎵</span><span class="name">${window.retro.basename(filePath)}</span>`;
+      li.addEventListener('click', () => {
+        if (librarySelected.has(filePath)) librarySelected.delete(filePath);
+        else librarySelected.add(filePath);
+        libRenderList();
+      });
+      li.addEventListener('dblclick', () => { addFiles([filePath]); });
+      libList.appendChild(li);
+    }
+    libAddSelectedBtn.textContent = `Add Selected (${librarySelected.size})`;
+    libApplySearchFilter();
+  }
+
+  function libApplySearchFilter() {
+    const q = libSearch.value.trim().toLowerCase();
+    Array.from(libList.children).forEach((li) => {
+      const match = !q || li.textContent.toLowerCase().includes(q);
+      li.classList.toggle('hiddenByFilter', !match);
+    });
+  }
+  libSearch.addEventListener('input', libApplySearchFilter);
+
+  async function libNavigate(dirPath) {
+    const result = await window.retro.listDir(dirPath);
+    libCurrentPath = result.path;
+    libEntries = { dirs: result.dirs || [], files: result.files || [] };
+    librarySelected.clear();
+    libPathEl.textContent = libCurrentPath;
+    libPathEl.title = libCurrentPath;
+    libRenderList();
+  }
+
+  el('libUp').addEventListener('click', () => {
+    if (!libCurrentPath) return;
+    const parent = window.retro.dirname(libCurrentPath);
+    if (parent && parent !== libCurrentPath) libNavigate(parent);
+  });
+  libAddSelectedBtn.addEventListener('click', () => {
+    if (librarySelected.size) addFiles(Array.from(librarySelected));
+    librarySelected.clear();
+    libRenderList();
+  });
+  el('libAddFolder').addEventListener('click', async () => {
+    if (!libCurrentPath) return;
+    addFiles(await window.retro.scanAudioDir(libCurrentPath));
+  });
+
+  (async () => {
+    const homes = await window.retro.homeDirs();
+    const labels = { music: '🎵 Music', desktop: '🖥 Desktop', downloads: '⬇ Downloads', home: '🏠 Home' };
+    libQuickLinks.innerHTML = '';
+    for (const [key, dirPath] of Object.entries(homes)) {
+      const btn = document.createElement('button');
+      btn.className = 'smallbtn';
+      btn.textContent = labels[key] || key;
+      btn.addEventListener('click', () => libNavigate(dirPath));
+      libQuickLinks.appendChild(btn);
+    }
+    libNavigate(homes.music || homes.home);
+  })();
 
   // ---------- Drag & drop ----------
   window.addEventListener('dragover', (e) => e.preventDefault());

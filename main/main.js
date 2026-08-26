@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const os = require('node:os');
 const googleDrive = require('./google-drive');
 
 let mainWindow;
@@ -86,6 +87,41 @@ function scanAudioDir(dir, out) {
     else if (AUDIO_EXTS.has(path.extname(entry.name).toLowerCase())) out.push(full);
   }
 }
+
+ipcMain.handle('fs:home-dirs', () => {
+  const home = os.homedir();
+  const candidates = { home, music: path.join(home, 'Music'), desktop: path.join(home, 'Desktop'), downloads: path.join(home, 'Downloads') };
+  const out = {};
+  for (const [key, p] of Object.entries(candidates)) {
+    if (key === 'home' || fs.existsSync(p)) out[key] = p;
+  }
+  return out;
+});
+
+ipcMain.handle('fs:list-dir', (_e, dirPath) => {
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    const dirs = [];
+    const files = [];
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      const full = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) dirs.push(full);
+      else if (AUDIO_EXTS.has(path.extname(entry.name).toLowerCase())) files.push(full);
+    }
+    dirs.sort((a, b) => a.localeCompare(b));
+    files.sort((a, b) => a.localeCompare(b));
+    return { path: dirPath, dirs, files };
+  } catch (err) {
+    return { path: dirPath, dirs: [], files: [], error: err.message };
+  }
+});
+
+ipcMain.handle('fs:scan-audio-dir', (_e, dirPath) => {
+  const out = [];
+  scanAudioDir(dirPath, out);
+  return out;
+});
 
 ipcMain.handle('files:open-folder-dialog', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
