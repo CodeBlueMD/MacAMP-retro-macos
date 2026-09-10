@@ -5,11 +5,29 @@
   Built with Electron · Native macOS Titlebar · YouTube Downloader · 10-Band EQ · Cloud & Local Library
 </p>
 
+<p align="center">
+  <a href="https://github.com/CodeBlueMD/MacAMP-retro-macos/releases/latest/download/MacAMP-1.1.0-universal.dmg">
+    <img src="https://img.shields.io/badge/Download-MacAMP%20for%20macOS%20(.dmg)-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Download MacAMP for macOS" />
+  </a>
+</p>
+
 ---
 
 ## Screenshots
 
 ![MacAMP main window](screenshots/macamp-main.png)
+
+---
+
+## Download & Install (.dmg) — Quick & Easy
+
+You don't need Terminal or developer tools to use MacAMP:
+
+1. **Download**: Click [**MacAMP-1.1.0-universal.dmg**](https://github.com/CodeBlueMD/MacAMP-retro-macos/releases/latest/download/MacAMP-1.1.0-universal.dmg) *(Universal binary: runs natively on Apple Silicon M1/M2/M3/M4 & Intel Macs)*.
+2. **Install**: Open the `.dmg` and drag **MacAMP** into your **Applications** folder.
+3. **First launch**: Because MacAMP is a free open-source project without a paid Apple Developer certificate, macOS Gatekeeper may show a security notice the first time:
+   - **Right-click** (or Control-click) **MacAMP** in Applications → click **Open** → click **Open**.
+   - After this one-time confirmation, it opens normally like any other Mac app.
 
 ---
 
@@ -48,20 +66,9 @@
 
 ---
 
-## Install on your Mac — no Terminal needed (recommended)
-
-A GitHub Actions workflow builds the `.dmg` on a real macOS runner and attaches it to a GitHub Release.
-
-1. Go to the **Actions** tab of this repo → **Build macOS App** (left sidebar).
-2. Click **Run workflow** → **Run workflow** (leave branch as `main`).
-3. Wait ~3–5 minutes for it to complete.
-4. Under **Artifacts**, download **MacAMP-macOS** (a zip containing the `.dmg`).
-5. Open the `.dmg` and drag **MacAMP** into **Applications**.
-6. **First launch**: Right-click **MacAMP** in Applications → **Open** → **Open**.
-
----
-
 ## Install on your Mac (build from source)
+
+If you prefer building from source:
 
 1. Ensure [Node.js](https://nodejs.org) (v18+) is installed.
 2. For YouTube downloading, `yt-dlp` and `ffmpeg` are recommended:
