@@ -8,25 +8,35 @@
 <body>
   <div id="app">
 
+    <!-- Unified macOS Window Titlebar -->
+    <div id="macTitleBar" class="drag">
+      <div class="trafficLights nodrag">
+        <button id="macCloseBtn" class="trafficLight close" title="Close MacAMP"></button>
+        <button id="macMinBtn" class="trafficLight min" title="Minimize"></button>
+        <button id="macZoomBtn" class="trafficLight max" title="Toggle Fullscreen"></button>
+      </div>
+      <div class="macTitle">MacAMP</div>
+      <div class="macTitleActions nodrag">
+        <button id="btnPin" class="smallbtn" title="Toggle Always on Top">📌 On Top</button>
+      </div>
+    </div>
+
     <div id="stage">
 
-      <!-- Player window (drags the OS window) -->
-      <div id="playerWin" class="winpanel">
-        <div class="wintitle drag">
-          <span class="dot" id="pwrDot"></span>
-          <span class="wintitleText">MACAMP</span>
-          <div class="wintitlebtns nodrag">
-            <button id="btnFullscreen" title="Fullscreen player">⛶</button>
-            <button id="btnPin" title="Always on top">◆</button>
-            <button id="btnMin" title="Minimize">_</button>
-            <button id="btnClose" title="Close">×</button>
+      <!-- Left column: Player, Playlist, Equalizer -->
+      <div id="leftCol">
+
+        <!-- Player window -->
+        <div id="playerWin" class="winpanel">
+          <div class="wintitle">
+            <span class="dot" id="pwrDot"></span>
+            <span class="wintitleText">MACAMP</span>
           </div>
-        </div>
         <div class="winbody">
           <div id="lcd">
             <canvas id="viz" width="90" height="40"></canvas>
             <div id="lcdText">
-              <div id="trackScroll"><span id="trackName">drop your music here — it real</span></div>
+              <div id="trackScroll"><span id="trackName">MACAMP — drop files, iCloud, or Drive</span></div>
               <div id="metaRow">
                 <span id="timeDisplay">0:00</span>
                 <span id="kbps">-- kbps</span>
@@ -43,12 +53,12 @@
 
           <div id="controlsRow">
             <div class="transport">
-              <button class="tbtn" id="btnPrev" title="Previous">◄◄</button>
-              <button class="tbtn" id="btnPlay" title="Play">►</button>
-              <button class="tbtn" id="btnPause" title="Pause">❚❚</button>
-              <button class="tbtn" id="btnStop" title="Stop">■</button>
-              <button class="tbtn" id="btnNext" title="Next">►►</button>
-              <button class="tbtn" id="btnOpen" title="Add files…">▲</button>
+              <button class="tbtn" id="btnPrev" title="Previous [Z]"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="0.5" y="1" width="1.5" height="8" /><polygon points="9.5,1 3,5 9.5,9" /></svg></button>
+              <button class="tbtn" id="btnPlay" title="Play [X]"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9" /></svg></button>
+              <button class="tbtn" id="btnPause" title="Pause [C]"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="2.8" height="8" rx="0.5" /><rect x="6.2" y="1" width="2.8" height="8" rx="0.5" /></svg></button>
+              <button class="tbtn" id="btnStop" title="Stop [V]"><svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><rect x="0.5" y="0.5" width="8" height="8" rx="0.8" /></svg></button>
+              <button class="tbtn" id="btnNext" title="Next [B]"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="0.5,1 7,5 0.5,9" /><rect x="8" y="1" width="1.5" height="8" /></svg></button>
+              <button class="tbtn" id="btnOpen" title="Add files… [L]"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="5,1 9.5,6.5 0.5,6.5" /><rect x="0.5" y="8" width="9" height="1.5" /></svg></button>
             </div>
             <div class="slidersMini">
               <label>VOL</label>
@@ -72,25 +82,39 @@
       <div id="plWin" class="winpanel">
         <div class="wintitle nodrag" data-dragtarget="plWin">
           <span class="wintitleText">PLAYLIST EDITOR</span>
-          <div class="wintitlebtns">
-            <button class="winMinBtn" data-target="plWin" title="Hide">_</button>
-            <button class="winCloseBtn" data-target="plWin" title="Hide">×</button>
-          </div>
         </div>
         <div class="winbody">
-          <input id="jumpTo" type="text" placeholder="jump to… (J)" />
+          <div class="plSourceBar">
+            <button id="btnYoutubeToggle" class="smallbtn accent" title="Download & add YouTube audio or playlist">▶ YouTube DL</button>
+            <button id="btnGdriveToggle" class="smallbtn" title="Google Drive integration">☁ Drive</button>
+            <input id="jumpTo" type="text" placeholder="jump to… (J)" />
+          </div>
+
+          <div id="youtubeRow" class="hidden sourceDropdown">
+            <div class="ytInputRow">
+              <input id="youtubeInput" type="text" placeholder="Paste YouTube video or playlist URL…" />
+              <button id="btnYoutubeDownload" class="smallbtn accent">⬇ Download</button>
+              <button id="btnYoutubeCancel" class="smallbtn hidden">Cancel</button>
+            </div>
+            <div id="youtubeProgressWrap" class="hidden">
+              <div id="youtubeProgressBar"></div>
+            </div>
+            <span id="youtubeStatus" class="youtubeStatus"></span>
+          </div>
+
+          <div id="gdriveRow" class="hidden sourceDropdown">
+            <div id="gdriveBar">
+              <span id="gdriveStatus" class="gdriveStatus">Google Drive: checking…</span>
+              <button id="btnGdriveConnect" class="smallbtn">Connect</button>
+              <button id="btnGdriveConfig" class="smallbtn" title="Open the config file to add your Google OAuth credentials">Setup</button>
+            </div>
+            <div id="gdriveFolderRow" class="hidden">
+              <input id="gdriveFolderInput" type="text" placeholder="Paste a Google Drive folder link or ID…" />
+              <button id="btnGdriveLoad" class="smallbtn">Load</button>
+            </div>
+          </div>
+
           <div id="dropHint">drop your music here — <span class="dim">nothing is uploaded, it all stays on your machine</span></div>
-
-          <div id="gdriveBar">
-            <span id="gdriveStatus" class="gdriveStatus">Google Drive: checking…</span>
-            <button id="btnGdriveConnect" class="smallbtn">Connect</button>
-            <button id="btnGdriveConfig" class="smallbtn" title="Open the config file to add your Google OAuth credentials">Setup</button>
-          </div>
-          <div id="gdriveFolderRow" class="hidden">
-            <input id="gdriveFolderInput" type="text" placeholder="Paste a Google Drive folder link or ID…" />
-            <button id="btnGdriveLoad" class="smallbtn">Load</button>
-          </div>
-
           <ul id="plList"></ul>
 
           <div class="plToolbar">
@@ -109,10 +133,6 @@
       <div id="eqWin" class="winpanel">
         <div class="wintitle nodrag" data-dragtarget="eqWin">
           <span class="wintitleText">EQUALIZER</span>
-          <div class="wintitlebtns">
-            <button class="winMinBtn" data-target="eqWin" title="Hide">_</button>
-            <button class="winCloseBtn" data-target="eqWin" title="Hide">×</button>
-          </div>
         </div>
         <div class="winbody">
           <div class="panelHeader">
@@ -131,36 +151,42 @@
             </select>
           </div>
           <div id="eqBody">
-            <div class="dbScale"><span>+12</span><span>0</span><span>-12</span></div>
+            <div class="dbScale">
+              <div class="dbLabels">
+                <span>+12</span>
+                <span>0</span>
+                <span>-12</span>
+              </div>
+              <span class="dbUnit">dB</span>
+            </div>
             <div id="eqBands">
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider" id="preamp" /><span>PRE</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider" id="preamp" /></div><span>PRE</span></div>
               <div class="eqSep"></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="60" /><span>60</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="170" /><span>170</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="310" /><span>310</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="600" /><span>600</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="1000" /><span>1K</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="3000" /><span>3K</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="6000" /><span>6K</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="12000" /><span>12K</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="14000" /><span>14K</span></div>
-              <div class="eqBand"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="16000" /><span>16K</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="60" /></div><span>60</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="170" /></div><span>170</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="310" /></div><span>310</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="600" /></div><span>600</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="1000" /></div><span>1K</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="3000" /></div><span>3K</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="6000" /></div><span>6K</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="12000" /></div><span>12K</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="14000" /></div><span>14K</span></div>
+              <div class="eqBand"><div class="eqSliderWrap"><input type="range" min="-12" max="12" value="0" step="0.5" class="eqSlider eqBandSlider" data-freq="16000" /></div><span>16K</span></div>
             </div>
           </div>
         </div>
       </div>
 
+      </div> <!-- /#leftCol -->
+
       <!-- Library window: browse your computer's folders to find audio to add -->
       <div id="libWin" class="winpanel">
         <div class="wintitle nodrag" data-dragtarget="libWin">
           <span class="wintitleText">LIBRARY</span>
-          <div class="wintitlebtns">
-            <button class="winMinBtn" data-target="libWin" title="Hide">_</button>
-            <button class="winCloseBtn" data-target="libWin" title="Hide">×</button>
-          </div>
         </div>
         <div class="winbody">
           <div id="libQuickLinks"></div>
+          <div id="cloudQuickLinks"></div>
           <div id="libBreadcrumbRow">
             <button id="libUp" class="smallbtn" title="Up one level">⬆ Up</button>
             <span id="libPath" class="libPath"></span>
@@ -183,6 +209,7 @@
         <div class="cardTitle">FILES</div>
         <button id="dashAddFile" class="bigbtn accent">+ Add files</button>
         <button id="dashAddDir" class="bigbtn accent">📁 Add folder</button>
+        <button id="dashAddYoutube" class="bigbtn">▶ Add from YouTube</button>
         <div class="btnRow">
           <button id="dashSaveM3u" class="smallbtn">⬇ Save .m3u</button>
           <button id="dashLoadM3u" class="smallbtn">⬆ Load .m3u</button>
@@ -228,16 +255,7 @@
           <button class="swatch" data-theme="vapor" style="background:#241535"><span>Vapor</span></button>
           <button class="swatch" data-theme="midnight" style="background:#0b1226"><span>Midnight</span></button>
         </div>
-        <div class="fieldRow">
-          <label>Size</label>
-          <select id="sizeSelect">
-            <option value="fit">auto fit</option>
-            <option value="compact">compact</option>
-            <option value="large">large</option>
-          </select>
-        </div>
         <label class="checkRow"><input type="checkbox" id="albumArtToggle" /> Album art</label>
-        <button id="btnResetLayout" class="smallbtn">↺ Reset layout</button>
         <button id="btnFullscreenPlayer" class="bigbtn accent">⛶ Fullscreen player</button>
       </div>
 

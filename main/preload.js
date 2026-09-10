@@ -3,6 +3,7 @@ const path = require('node:path');
 
 contextBridge.exposeInMainWorld('retro', {
   homeDirs: () => ipcRenderer.invoke('fs:home-dirs'),
+  cloudRoots: () => ipcRenderer.invoke('fs:cloud-roots'),
   listDir: (dirPath) => ipcRenderer.invoke('fs:list-dir', dirPath),
   scanAudioDir: (dirPath) => ipcRenderer.invoke('fs:scan-audio-dir', dirPath),
   dirname: (p) => path.dirname(p),
@@ -25,4 +26,18 @@ contextBridge.exposeInMainWorld('retro', {
   googleListFolder: (folderIdOrUrl) => ipcRenderer.invoke('google:list-folder', folderIdOrUrl),
   googleGetTrack: (fileId) => ipcRenderer.invoke('google:get-track', fileId),
   googleOpenConfig: () => ipcRenderer.invoke('google:open-config'),
+
+  youtubeStatus: () => ipcRenderer.invoke('youtube:status'),
+  youtubeDownload: (url) => ipcRenderer.invoke('youtube:download', url),
+  youtubeCancel: () => ipcRenderer.invoke('youtube:cancel'),
+  onYoutubeProgress: (cb) => {
+    const handler = (_e, data) => cb(data);
+    ipcRenderer.on('youtube:progress', handler);
+    return () => ipcRenderer.removeListener('youtube:progress', handler);
+  },
+  onYoutubeTrackAdded: (cb) => {
+    const handler = (_e, filePath) => cb(filePath);
+    ipcRenderer.on('youtube:track-added', handler);
+    return () => ipcRenderer.removeListener('youtube:track-added', handler);
+  },
 });

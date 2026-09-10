@@ -20,7 +20,11 @@ function tokensPath() {
 function ensureConfigTemplate() {
   const p = configPath();
   if (!fs.existsSync(p)) {
-    fs.writeFileSync(p, JSON.stringify({ client_id: '', client_secret: '' }, null, 2));
+    fs.writeFileSync(p, JSON.stringify({
+      client_id: '',
+      client_secret: '',
+      _comment: 'Create a Desktop OAuth client in Google Cloud Console. Authorized redirect: http://127.0.0.1:53682/callback',
+    }, null, 2));
   }
   return p;
 }
@@ -36,11 +40,8 @@ function readConfig() {
 }
 
 function readTokens() {
-  try {
-    return JSON.parse(fs.readFileSync(tokensPath(), 'utf8'));
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(fs.readFileSync(tokensPath(), 'utf8')); }
+  catch { return null; }
 }
 
 function writeTokens(tokens) {
@@ -90,25 +91,34 @@ async function connect() {
       const err = url.searchParams.get('error');
       res.writeHead(200, { 'Content-Type': 'text/html' });
       if (err) {
-        res.end('<html><body style="font-family:sans-serif">Google sign-in was cancelled. You can close this tab.</body></html>');
+        res.end('<html><body style="font-family:sans-serif;background:#111;color:#9f9">Sign-in cancelled. Close this tab.</body></html>');
         server.close();
         reject(new Error(`Google OAuth error: ${err}`));
         return;
       }
       if (returnedState !== state) {
-        res.end('<html><body style="font-family:sans-serif">Sign-in failed (state mismatch). Close this tab and try again.</body></html>');
+        res.end('<html><body style="font-family:sans-serif;background:#111;color:#f88">State mismatch. Close and retry.</body></html>');
         server.close();
         reject(new Error('OAuth state mismatch'));
         return;
       }
-      res.end('<html><body style="font-family:sans-serif">MacAMP is connected to Google Drive. You can close this tab.</body></html>');
+      res.end('<html><body style="font-family:sans-serif;background:#111;color:#9f9">MacAMP is connected to Google Drive. You can close this tab.</body></html>');
       server.close();
       resolve(url.searchParams.get('code'));
     });
+    const timer = setTimeout(() => {
+      try { server.close(); } catch {}
+      reject(new Error('Sign-in timed out (2 minutes)'));
+    }, 120000);
     server.listen(REDIRECT_PORT, '127.0.0.1', () => {
       shell.openExternal(authUrl.toString());
     });
-    server.on('error', reject);
+    server.on('error', (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
+    const origClose = server.close.bind(server);
+    server.close = (...args) => { clearTimeout(timer); return origClose(...args); };
   });
 
   const tokenRes = await fetch(TOKEN_ENDPOINT, {
@@ -138,7 +148,7 @@ async function getAccessToken() {
 
   const age = Date.now() - (tokens.obtained_at || 0);
   const expiresInMs = (tokens.expires_in || 3600) * 1000;
-  if (age < expiresInMs - 60000) return tokens.access_token;
+  if (age < expiresInMs - 60000 && tokens.access_token) return tokens.access_token;
 
   const res = await fetch(TOKEN_ENDPOINT, {
     method: 'POST',
@@ -158,27 +168,42 @@ async function getAccessToken() {
 }
 
 function extractFolderId(input) {
-  const trimmed = input.trim();
-  const match = trimmed.match(/[-\w]{25,}/);
-  return match ? match[0] : trimmed;
+  const trimmed = String(input || '').trim();
+  const folderUrl = trimmed.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (folderUrl) return folderUrl[1];
+  const openUrl = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (openUrl) return openUrl[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(trimmed)) return trimmed;
+  return trimmed;
 }
 
 async function listAudioInFolder(folderIdOrUrl) {
-  const folderId = extractFolderId(folderIdOrUrl);
+  const folderId = extractFolderId(folderIdOrUrl) || 'root';
   const accessToken = await getAccessToken();
-  const q = encodeURIComponent(`'${folderId}' in parents and mimeType contains 'audio/' and trashed = false`);
+  const q = encodeURIComponent(
+    `'${folderId}' in parents and trashed = false and (mimeType contains 'audio/' or mimeType = 'application/vnd.google-apps.folder' or name contains '.mp3' or name contains '.flac' or name contains '.m4a' or name contains '.wav' or name contains '.ogg' or name contains '.aac')`
+  );
   const fields = encodeURIComponent('files(id,name,mimeType,size)');
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&pageSize=200`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  const files = [];
+  let pageToken = '';
+  do {
+    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&pageSize=200&orderBy=folder,name${pageToken ? `&pageToken=${pageToken}` : ''}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) throw new Error(`Drive list failed: ${await res.text()}`);
+    const data = await res.json();
+    files.push(...(data.files || []));
+    pageToken = data.nextPageToken || '';
+  } while (pageToken);
+
+  return files.filter((f) => {
+    if (f.mimeType === 'application/vnd.google-apps.folder') return false;
+    return (f.mimeType || '').startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a|aac|aiff|aif)$/i.test(f.name);
   });
-  if (!res.ok) throw new Error(`Drive list failed: ${await res.text()}`);
-  const data = await res.json();
-  return data.files || [];
 }
 
 async function getFileBytesBase64(fileId) {
   const accessToken = await getAccessToken();
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error(`Drive download failed: ${await res.text()}`);
@@ -186,4 +211,6 @@ async function getFileBytesBase64(fileId) {
   return buf.toString('base64');
 }
 
-module.exports = { status, connect, disconnect, listAudioInFolder, getFileBytesBase64, configPath };
+module.exports = {
+  status, connect, disconnect, listAudioInFolder, getFileBytesBase64, configPath, ensureConfigTemplate,
+};

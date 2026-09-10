@@ -1,8 +1,8 @@
 {
   "name": "macamp",
   "productName": "MacAMP",
-  "version": "1.0.0",
-  "description": "A retro Winamp-style music player for macOS, built with Electron.",
+  "version": "1.1.0",
+  "description": "Retro Winamp-style music player for macOS with local + cloud folders.",
   "main": "main/main.js",
   "author": "MacAMP",
   "license": "MIT",
@@ -30,10 +30,9 @@
     },
     "mac": {
       "category": "public.app-category.music",
-      "icon": "build/icon.png",
+      "icon": "build/icon.icns",
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] },
-        { "target": "zip", "arch": ["x64", "arm64"] }
+        { "target": "dmg", "arch": ["universal"] }
       ],
       "hardenedRuntime": false,
       "gatekeeperAssess": false

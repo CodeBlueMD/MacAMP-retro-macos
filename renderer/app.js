@@ -99,89 +99,25 @@
   const plFooter = el('plFooter');
 
   // ---------- Title bar / window controls ----------
-  el('btnMin').addEventListener('click', () => window.retro.minimize());
-  el('btnClose').addEventListener('click', () => window.retro.close());
-  el('btnPin').addEventListener('click', async () => {
-    const on = await window.retro.toggleAlwaysOnTop();
-    el('btnPin').classList.toggle('on', on);
-  });
+  const macCloseBtn = el('macCloseBtn');
+  const macMinBtn = el('macMinBtn');
+  const macZoomBtn = el('macZoomBtn');
+  if (macCloseBtn) macCloseBtn.addEventListener('click', () => window.retro.close());
+  if (macMinBtn) macMinBtn.addEventListener('click', () => window.retro.minimize());
+  if (macZoomBtn) macZoomBtn.addEventListener('click', () => window.retro.toggleFullscreen());
+
+  const btnPin = el('btnPin');
+  if (btnPin) {
+    btnPin.addEventListener('click', async () => {
+      const on = await window.retro.toggleAlwaysOnTop();
+      btnPin.classList.toggle('on', on);
+    });
+  }
   async function toggleFullscreenPlayer() { await window.retro.toggleFullscreen(); }
-  el('btnFullscreen').addEventListener('click', toggleFullscreenPlayer);
-  el('btnFullscreenPlayer').addEventListener('click', toggleFullscreenPlayer);
+  const btnFullscreenPlayer = el('btnFullscreenPlayer');
+  if (btnFullscreenPlayer) btnFullscreenPlayer.addEventListener('click', toggleFullscreenPlayer);
 
-  document.querySelectorAll('.winMinBtn, .winCloseBtn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const target = document.getElementById(btn.dataset.target);
-      target.classList.add('hidden');
-      if (btn.dataset.target === 'eqWin') btnEQ.classList.remove('on');
-      if (btn.dataset.target === 'plWin') btnPL.classList.remove('on');
-      if (btn.dataset.target === 'libWin') btnLib.classList.remove('on');
-    });
-  });
-
-  // ---------- Layout: Player -> Playlist -> Equalizer stacked on the left,
-  // Library filling the full-height column on the right (computed from the
-  // actual rendered panel heights, so it holds up across themes/sizes). ----
-  const GAP = 14;
-  function computeDefaultPositions() {
-    playerWin.style.left = '0px'; playerWin.style.top = '0px';
-    const playerH = playerWin.offsetHeight;
-    const plH = plWin.offsetHeight;
-    const eqH = eqWin.offsetHeight;
-    const leftW = playerWin.offsetWidth;
-    const totalH = playerH + GAP + plH + GAP + eqH;
-    stage.style.height = totalH + 'px';
-    libWin.style.height = totalH + 'px';
-    return {
-      plWin: { left: 0, top: playerH + GAP },
-      eqWin: { left: 0, top: playerH + GAP + plH + GAP },
-      libWin: { left: leftW + GAP, top: 0 },
-    };
-  }
-
-  function makeDraggable(panel, handle, storageKey, defaultPos) {
-    let startX, startY, startLeft, startTop, dragging = false;
-    handle.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('button')) return;
-      dragging = true;
-      startX = e.clientX; startY = e.clientY;
-      startLeft = panel.offsetLeft; startTop = panel.offsetTop;
-      handle.setPointerCapture(e.pointerId);
-    });
-    handle.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      const left = startLeft + (e.clientX - startX);
-      const top = Math.max(0, startTop + (e.clientY - startY));
-      panel.style.left = left + 'px';
-      panel.style.top = top + 'px';
-    });
-    handle.addEventListener('pointerup', () => {
-      if (!dragging) return;
-      dragging = false;
-      localStorage.setItem(storageKey, JSON.stringify({ left: panel.offsetLeft, top: panel.offsetTop }));
-    });
-    const saved = localStorage.getItem(storageKey);
-    const pos = saved ? JSON.parse(saved) : defaultPos;
-    panel.style.left = pos.left + 'px'; panel.style.top = pos.top + 'px';
-  }
-
-  const defaults = computeDefaultPositions();
-  makeDraggable(plWin, plWin.querySelector('.wintitle'), 'macamp.pos.plWin', defaults.plWin);
-  makeDraggable(eqWin, eqWin.querySelector('.wintitle'), 'macamp.pos.eqWin', defaults.eqWin);
-  makeDraggable(libWin, libWin.querySelector('.wintitle'), 'macamp.pos.libWin', defaults.libWin);
-
-  el('btnResetLayout').addEventListener('click', () => {
-    localStorage.removeItem('macamp.pos.plWin');
-    localStorage.removeItem('macamp.pos.eqWin');
-    localStorage.removeItem('macamp.pos.libWin');
-    const d = computeDefaultPositions();
-    plWin.style.left = d.plWin.left + 'px'; plWin.style.top = d.plWin.top + 'px';
-    eqWin.style.left = d.eqWin.left + 'px'; eqWin.style.top = d.eqWin.top + 'px';
-    libWin.style.left = d.libWin.left + 'px'; libWin.style.top = d.libWin.top + 'px';
-  });
-
-  // ---------- Theme + size ----------
-  const app = el('app');
+  // ---------- Theme ----------
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     document.querySelectorAll('.swatch').forEach((s) => s.classList.toggle('on', s.dataset.theme === theme));
@@ -190,28 +126,26 @@
   document.querySelectorAll('.swatch').forEach((s) => s.addEventListener('click', () => applyTheme(s.dataset.theme)));
   applyTheme(localStorage.getItem('macamp.theme') || 'cyber');
 
-  const sizeSelect = el('sizeSelect');
-  function applySize(size) {
-    app.classList.remove('size-compact', 'size-large');
-    if (size === 'compact') app.classList.add('size-compact');
-    if (size === 'large') app.classList.add('size-large');
-    localStorage.setItem('macamp.size', size);
-  }
-  sizeSelect.addEventListener('change', () => applySize(sizeSelect.value));
-  const savedSize = localStorage.getItem('macamp.size') || 'fit';
-  sizeSelect.value = savedSize; applySize(savedSize);
-
   // ---------- Playlist rendering ----------
   function renderPlaylist() {
     plList.innerHTML = '';
+    const dropHint = el('dropHint');
+    if (dropHint) dropHint.classList.toggle('hidden', playlist.length > 0);
+
     playlist.forEach((track, i) => {
       const li = document.createElement('li');
+      li.title = track.name;
       if (i === currentIndex) li.classList.add('playing');
       if (i === selectedIndex) li.classList.add('selected');
       const dur = track.duration ? fmtTime(track.duration) : '';
-      li.innerHTML = `<span class="idx">${i + 1}.</span><span class="name">${track.name}</span><span class="dur">${dur}</span><span class="rm">✕</span>`;
-      li.addEventListener('click', () => { selectedIndex = i; renderPlaylist(); });
-      li.addEventListener('dblclick', () => loadAndPlay(i));
+      li.innerHTML = `<span class="idx">${i + 1}.</span><span class="name">${track.name}</span><span class="dur">${dur}</span><span class="rm" title="Remove track">✕</span>`;
+      li.addEventListener('click', () => {
+        selectedIndex = i;
+        plList.querySelectorAll('li').forEach((item, idx) => item.classList.toggle('selected', idx === i));
+      });
+      li.addEventListener('dblclick', () => {
+        loadAndPlay(i);
+      });
       li.querySelector('.rm').addEventListener('click', (ev) => { ev.stopPropagation(); removeTrack(i); });
       plList.appendChild(li);
     });
@@ -453,6 +387,139 @@
     btnLoad.disabled = false; btnLoad.textContent = 'Load';
   });
 
+  const btnGdriveToggle = el('btnGdriveToggle');
+  const gdriveRow = el('gdriveRow');
+  if (btnGdriveToggle && gdriveRow) {
+    btnGdriveToggle.addEventListener('click', () => {
+      gdriveRow.classList.toggle('hidden');
+    });
+  }
+
+  // ---------- YouTube Downloader ----------
+  const btnYoutubeToggle = el('btnYoutubeToggle');
+  const youtubeBar = el('youtubeBar');
+  const youtubeStatus = el('youtubeStatus');
+  const youtubeRow = el('youtubeRow');
+  const youtubeInput = el('youtubeInput');
+  const btnYoutubeDownload = el('btnYoutubeDownload');
+  const btnYoutubeCancel = el('btnYoutubeCancel');
+  const youtubeProgressWrap = el('youtubeProgressWrap');
+  const youtubeProgressBar = el('youtubeProgressBar');
+  const dashAddYoutube = el('dashAddYoutube');
+
+  async function checkYoutubeStatus() {
+    if (!window.retro.youtubeStatus) return;
+    try {
+      const s = await window.retro.youtubeStatus();
+      if (!s.available) {
+        youtubeStatus.className = 'youtubeStatus error';
+        youtubeStatus.textContent = 'yt-dlp missing (brew install yt-dlp ffmpeg)';
+      } else {
+        youtubeStatus.className = 'youtubeStatus';
+        youtubeStatus.textContent = 'ready';
+      }
+    } catch {}
+  }
+  checkYoutubeStatus();
+
+  btnYoutubeToggle.addEventListener('click', () => {
+    const isHidden = youtubeRow.classList.contains('hidden');
+    youtubeRow.classList.toggle('hidden', !isHidden);
+    if (isHidden) {
+      youtubeInput.focus();
+    }
+  });
+
+  if (dashAddYoutube) {
+    dashAddYoutube.addEventListener('click', () => {
+      plWin.classList.remove('hidden');
+      btnPL.classList.add('on');
+      youtubeRow.classList.remove('hidden');
+      youtubeInput.focus();
+      youtubeInput.select();
+    });
+  }
+
+  async function startYoutubeDownload() {
+    const url = youtubeInput.value.trim();
+    if (!url) return;
+
+    const s = await window.retro.youtubeStatus();
+    if (!s.available) {
+      youtubeStatus.className = 'youtubeStatus error';
+      youtubeStatus.textContent = 'yt-dlp not found! Run: brew install yt-dlp ffmpeg';
+      return;
+    }
+
+    btnYoutubeDownload.disabled = true;
+    btnYoutubeCancel.classList.remove('hidden');
+    youtubeProgressWrap.classList.remove('hidden');
+    youtubeProgressBar.style.width = '5%';
+    youtubeStatus.className = 'youtubeStatus active';
+    youtubeStatus.textContent = 'Starting download…';
+
+    try {
+      const res = await window.retro.youtubeDownload(url);
+      youtubeStatus.className = 'youtubeStatus active';
+      youtubeStatus.textContent = `Done! Added ${res.count} track${res.count === 1 ? '' : 's'}.`;
+      youtubeProgressBar.style.width = '100%';
+      youtubeInput.value = '';
+      setTimeout(() => {
+        youtubeProgressWrap.classList.add('hidden');
+        youtubeProgressBar.style.width = '0%';
+      }, 3000);
+    } catch (err) {
+      youtubeStatus.className = 'youtubeStatus error';
+      youtubeStatus.textContent = err.message || 'Download failed';
+      youtubeProgressWrap.classList.add('hidden');
+    } finally {
+      btnYoutubeDownload.disabled = false;
+      btnYoutubeCancel.classList.add('hidden');
+    }
+  }
+
+  btnYoutubeDownload.addEventListener('click', startYoutubeDownload);
+  youtubeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      startYoutubeDownload();
+    }
+  });
+
+  btnYoutubeCancel.addEventListener('click', async () => {
+    await window.retro.youtubeCancel();
+    youtubeStatus.className = 'youtubeStatus';
+    youtubeStatus.textContent = 'Download cancelled.';
+    btnYoutubeDownload.disabled = false;
+    btnYoutubeCancel.classList.add('hidden');
+    youtubeProgressWrap.classList.add('hidden');
+  });
+
+  if (window.retro.onYoutubeProgress) {
+    window.retro.onYoutubeProgress((data) => {
+      if (data.isError) {
+        youtubeStatus.className = 'youtubeStatus error';
+        youtubeStatus.textContent = data.text;
+        return;
+      }
+      youtubeStatus.className = 'youtubeStatus active';
+      if (data.percent) {
+        youtubeProgressBar.style.width = data.percent;
+        youtubeStatus.textContent = data.text;
+      } else if (data.text) {
+        youtubeStatus.textContent = data.text;
+      }
+    });
+  }
+
+  if (window.retro.onYoutubeTrackAdded) {
+    window.retro.onYoutubeTrackAdded((filePath) => {
+      addFiles([filePath]);
+      youtubeStatus.className = 'youtubeStatus active';
+      youtubeStatus.textContent = `Added: ${baseName(filePath)}`;
+    });
+  }
+
   // ---------- Shuffle / repeat / EQ / PL toggles ----------
   btnShuffle.addEventListener('click', () => { shuffleOn = !shuffleOn; btnShuffle.classList.toggle('on', shuffleOn); });
   btnRepeat.addEventListener('click', () => { repeatOn = !repeatOn; btnRepeat.classList.toggle('on', repeatOn); });
@@ -534,13 +601,22 @@
   eqAutoToggle.addEventListener('click', () => eqAutoToggle.classList.toggle('on'));
 
   const eqPresets = {
-    flat: [0,0,0,0,0,0,0,0,0,0,0], rock: [4,4,3,1,-1,-1,0,2,3,3,3], pop: [2,-1,-2,-1,1,3,4,4,3,2,2],
-    bass: [6,8,7,5,2,0,-1,-1,-1,-1,-1], treble: [-3,-3,-2,-1,0,1,3,5,6,7,7],
-    classical: [0,3,3,3,2,0,-2,-2,-2,-3,-4], dance: [5,6,3,0,0,-2,-3,-3,0,2,2],
+    flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    rock: [4, 7, 5, 2, -1, -2, -1, 2, 5, 8, 9],
+    pop: [2, -2, 1, 4, 7, 8, 5, 2, -1, -2, -2],
+    bass: [5, 10, 9, 7, 4, 1, 0, -1, -2, -2, -2],
+    treble: [0, -3, -3, -2, -1, 0, 2, 5, 8, 10, 11],
+    classical: [0, 5, 4, 3, 2, -1, -1, 0, 3, 5, 6],
+    dance: [4, 9, 8, 4, 1, 0, -2, -3, 1, 7, 8],
   };
   el('eqPresets').addEventListener('change', (e) => {
     const vals = eqPresets[e.target.value] || eqPresets.flat;
-    preampSlider.value = vals[0]; bandSliders.forEach((s, i) => { s.value = vals[i + 1]; });
+    preampSlider.value = vals[0];
+    preampSlider.dispatchEvent(new Event('input'));
+    bandSliders.forEach((s, i) => {
+      s.value = vals[i + 1];
+      s.dispatchEvent(new Event('input'));
+    });
     applyEqFromSliders();
   });
 
@@ -584,13 +660,26 @@
     }
   }
 
+  const vizPresetSelect = el('vizPreset');
+  const vizSensSlider = el('vizSensitivity');
+
   function drawMini() {
     requestAnimationFrame(drawMini);
-    renderViz(vizCtx, vizCanvas.width, vizCanvas.height, miniVizMode, 100);
+    const mode = vizPresetSelect ? vizPresetSelect.value : miniVizMode;
+    const sens = vizSensSlider ? parseFloat(vizSensSlider.value) : 100;
+    renderViz(vizCtx, vizCanvas.width, vizCanvas.height, mode, sens);
   }
   drawMini();
+
+  if (vizPresetSelect) {
+    vizPresetSelect.addEventListener('change', (e) => {
+      miniVizMode = e.target.value;
+    });
+  }
+
   vizCanvas.addEventListener('click', () => {
-    miniVizMode = miniVizMode === 'bars' ? 'dots' : miniVizMode === 'dots' ? 'scope' : miniVizMode === 'scope' ? 'off' : 'bars';
+    miniVizMode = miniVizMode === 'bars' ? 'dots' : miniVizMode === 'dots' ? 'scope' : 'bars';
+    if (vizPresetSelect) vizPresetSelect.value = miniVizMode;
   });
 
   const vizOverlay = el('vizOverlay');
@@ -725,9 +814,14 @@
       li.className = 'file' + (librarySelected.has(filePath) ? ' selected' : '');
       li.innerHTML = `<span>🎵</span><span class="name">${window.retro.basename(filePath)}</span>`;
       li.addEventListener('click', () => {
-        if (librarySelected.has(filePath)) librarySelected.delete(filePath);
-        else librarySelected.add(filePath);
-        libRenderList();
+        if (librarySelected.has(filePath)) {
+          librarySelected.delete(filePath);
+          li.classList.remove('selected');
+        } else {
+          librarySelected.add(filePath);
+          li.classList.add('selected');
+        }
+        libAddSelectedBtn.textContent = `Add Selected (${librarySelected.size})`;
       });
       li.addEventListener('dblclick', () => { addFiles([filePath]); });
       libList.appendChild(li);
@@ -772,7 +866,7 @@
 
   (async () => {
     const homes = await window.retro.homeDirs();
-    const labels = { music: '🎵 Music', desktop: '🖥 Desktop', downloads: '⬇ Downloads', home: '🏠 Home' };
+    const labels = { music: '🎵 Music', desktop: '🖥 Desktop', downloads: '⬇ Downloads', home: '🏠 Home', macamp: '⚡ MacAMP' };
     libQuickLinks.innerHTML = '';
     for (const [key, dirPath] of Object.entries(homes)) {
       const btn = document.createElement('button');
@@ -782,6 +876,21 @@
       libQuickLinks.appendChild(btn);
     }
     libNavigate(homes.music || homes.home);
+
+    const cloudBox = document.getElementById('cloudQuickLinks');
+    if (cloudBox && window.retro.cloudRoots) {
+      const clouds = await window.retro.cloudRoots();
+      cloudBox.innerHTML = '';
+      for (const c of clouds) {
+        const btn = document.createElement('button');
+        btn.className = 'smallbtn';
+        const icon = c.id === 'icloud' ? '☁ iCloud' : c.id === 'dropbox' ? '📦 Dropbox' : c.id === 'onedrive' ? '📁 OneDrive' : '☁ Drive Desktop';
+        btn.textContent = icon;
+        btn.title = c.path;
+        btn.addEventListener('click', () => libNavigate(c.path));
+        cloudBox.appendChild(btn);
+      }
+    }
   })();
 
   // ---------- Drag & drop ----------

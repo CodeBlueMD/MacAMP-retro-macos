@@ -1,23 +1,28 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, shell, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
 const googleDrive = require('./google-drive');
+const youtubeDownloader = require('./youtube-downloader');
 
 let mainWindow;
 
-const AUDIO_EXTS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac']);
+const AUDIO_EXTS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac', '.aiff', '.aif']);
 
 function createWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenW, height: screenH } = primaryDisplay.workAreaSize;
+  const initialWidth = Math.min(1320, Math.max(1024, screenW - 40));
+  const initialHeight = Math.min(960, Math.max(760, screenH - 25));
+
   mainWindow = new BrowserWindow({
-    width: 1090,
-    height: 760,
-    minWidth: 860,
-    minHeight: 620,
+    width: initialWidth,
+    height: initialHeight,
+    minWidth: 960,
+    minHeight: 660,
     resizable: true,
     frame: false,
-    transparent: false,
-    backgroundColor: '#0a0f0c',
+    backgroundColor: '#0c0d10',
     icon: path.join(__dirname, '..', 'build', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -28,16 +33,21 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
+  mainWindow.on('closed', () => { mainWindow = null; });
 }
 
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(null);
+  // Keep a minimal macOS menu so copy/paste still works.
+  if (process.platform === 'darwin') {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([
+      { role: 'appMenu' },
+      { role: 'editMenu' },
+      { role: 'windowMenu' },
+    ]));
+  } else {
+    Menu.setApplicationMenu(null);
+  }
   createWindow();
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -66,36 +76,86 @@ ipcMain.handle('files:open-dialog', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Add to Playlist',
     properties: ['openFile', 'multiSelections'],
-    filters: [
-      { name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'] },
-    ],
+    filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'aiff', 'aif'] }],
   });
   if (result.canceled) return [];
   return result.filePaths;
 });
 
-function scanAudioDir(dir, out) {
+function scanAudioDir(dir, out, depth = 0) {
+  if (depth > 8) return;
   let entries;
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
   for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue;
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) scanAudioDir(full, out);
+    if (entry.isDirectory()) scanAudioDir(full, out, depth + 1);
     else if (AUDIO_EXTS.has(path.extname(entry.name).toLowerCase())) out.push(full);
   }
 }
 
+function existing(p) {
+  try { return fs.existsSync(p) ? p : null; } catch { return null; }
+}
+
+function listCloudStorageChildren(prefix) {
+  const root = path.join(os.homedir(), 'Library', 'CloudStorage');
+  const found = [];
+  try {
+    for (const name of fs.readdirSync(root)) {
+      if (name.startsWith(prefix)) {
+        const p = path.join(root, name);
+        if (fs.statSync(p).isDirectory()) found.push(p);
+      }
+    }
+  } catch {}
+  return found;
+}
+
 ipcMain.handle('fs:home-dirs', () => {
   const home = os.homedir();
-  const candidates = { home, music: path.join(home, 'Music'), desktop: path.join(home, 'Desktop'), downloads: path.join(home, 'Downloads') };
-  const out = {};
-  for (const [key, p] of Object.entries(candidates)) {
-    if (key === 'home' || fs.existsSync(p)) out[key] = p;
-  }
+  const out = { home };
+  const music = path.join(home, 'Music');
+  const desktop = path.join(home, 'Desktop');
+  const downloads = path.join(home, 'Downloads');
+  if (existing(music)) out.music = music;
+  if (existing(desktop)) out.desktop = desktop;
+  if (existing(downloads)) out.downloads = downloads;
+  const macampDir = youtubeDownloader.getMusicDir();
+  if (existing(macampDir)) out.macamp = macampDir;
   return out;
+});
+
+ipcMain.handle('fs:cloud-roots', () => {
+  const home = os.homedir();
+  const roots = [];
+
+  const icloud = existing(path.join(home, 'Library', 'Mobile Documents', 'com~apple~CloudDocs'));
+  if (icloud) roots.push({ id: 'icloud', label: 'iCloud Drive', path: icloud });
+
+  const dropboxClassic = existing(path.join(home, 'Dropbox'));
+  if (dropboxClassic) roots.push({ id: 'dropbox', label: 'Dropbox', path: dropboxClassic });
+  for (const p of listCloudStorageChildren('Dropbox-')) {
+    roots.push({ id: 'dropbox', label: path.basename(p), path: p });
+  }
+
+  for (const p of listCloudStorageChildren('OneDrive-')) {
+    roots.push({ id: 'onedrive', label: path.basename(p).replace(/^OneDrive-/, 'OneDrive '), path: p });
+  }
+
+  for (const p of listCloudStorageChildren('GoogleDrive-')) {
+    // Usually .../GoogleDrive-xxx/My Drive
+    const myDrive = existing(path.join(p, 'My Drive')) || p;
+    roots.push({ id: 'gdrive-desktop', label: 'Google Drive (Desktop)', path: myDrive });
+  }
+
+  // de-dupe by path
+  const seen = new Set();
+  return roots.filter((r) => {
+    if (seen.has(r.path)) return false;
+    seen.add(r.path);
+    return true;
+  });
 });
 
 ipcMain.handle('fs:list-dir', (_e, dirPath) => {
@@ -141,8 +201,7 @@ ipcMain.handle('files:save-m3u', async (_e, paths) => {
     filters: [{ name: 'M3U Playlist', extensions: ['m3u'] }],
   });
   if (result.canceled || !result.filePath) return false;
-  const content = '#EXTM3U\n' + paths.join('\n') + '\n';
-  fs.writeFileSync(result.filePath, content, 'utf8');
+  fs.writeFileSync(result.filePath, '#EXTM3U\n' + paths.join('\n') + '\n', 'utf8');
   return true;
 });
 
@@ -175,4 +234,25 @@ ipcMain.handle('google:connect', () => googleDrive.connect());
 ipcMain.handle('google:disconnect', () => { googleDrive.disconnect(); return googleDrive.status(); });
 ipcMain.handle('google:list-folder', (_e, folderIdOrUrl) => googleDrive.listAudioInFolder(folderIdOrUrl));
 ipcMain.handle('google:get-track', (_e, fileId) => googleDrive.getFileBytesBase64(fileId));
-ipcMain.handle('google:open-config', () => shell.showItemInFolder(googleDrive.configPath()));
+ipcMain.handle('google:open-config', () => {
+  googleDrive.ensureConfigTemplate();
+  shell.showItemInFolder(googleDrive.configPath());
+});
+
+ipcMain.handle('youtube:status', () => youtubeDownloader.checkStatus());
+ipcMain.handle('youtube:download', async (_e, url) => {
+  return youtubeDownloader.download(
+    url,
+    (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('youtube:progress', progress);
+      }
+    },
+    (trackPath) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('youtube:track-added', trackPath);
+      }
+    }
+  );
+});
+ipcMain.handle('youtube:cancel', () => youtubeDownloader.cancel());
