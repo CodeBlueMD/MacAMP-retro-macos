@@ -189,7 +189,9 @@
           <div id="cloudQuickLinks"></div>
           <div id="libBreadcrumbRow">
             <button id="libUp" class="smallbtn" title="Up one level">⬆ Up</button>
-            <span id="libPath" class="libPath"></span>
+            <span id="libPath" class="libPath" title="Current folder path (click to reveal in Finder)"></span>
+            <button id="libNewFolder" class="smallbtn" title="Create new folder in current directory">📁+ Folder</button>
+            <button id="libOpenFinder" class="smallbtn" title="Open current folder in macOS Finder">📂 Finder</button>
           </div>
           <input id="libSearch" type="text" placeholder="filter this folder…" />
           <ul id="libList"></ul>
@@ -304,6 +306,15 @@
       </ul>
       <button id="btnCloseShortcuts" class="smallbtn">Close</button>
     </div>
+  </div>
+
+  <!-- Library Context Menu -->
+  <div id="libContextMenu" class="retroContextMenu hidden">
+    <div class="ctxItem" data-action="rename">✏️ Rename…</div>
+    <div class="ctxItem" data-action="reveal">📂 Reveal in Finder</div>
+    <div class="ctxItem" data-action="play">🎵 Add to Playlist</div>
+    <div class="ctxDivider"></div>
+    <div class="ctxItem danger" data-action="trash">🗑️ Move to Trash</div>
   </div>
 
   <script src="app.js"></script>

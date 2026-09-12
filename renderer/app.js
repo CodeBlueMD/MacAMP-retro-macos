@@ -796,9 +796,80 @@
   const libQuickLinks = el('libQuickLinks');
   const libSearch = el('libSearch');
   const libAddSelectedBtn = el('libAddSelected');
+  const libContextMenu = el('libContextMenu');
   let libCurrentPath = null;
   let libEntries = { dirs: [], files: [] };
   const librarySelected = new Set();
+  let activeContextItem = null;
+
+  function hideLibContextMenu() {
+    if (libContextMenu) libContextMenu.classList.add('hidden');
+    activeContextItem = null;
+  }
+
+  function showLibContextMenu(x, y, item) {
+    if (!libContextMenu) return;
+    activeContextItem = item;
+    libContextMenu.classList.remove('hidden');
+
+    const menuW = 150;
+    const menuH = 130;
+    const posX = Math.min(x, window.innerWidth - menuW - 10);
+    const posY = Math.min(y, window.innerHeight - menuH - 10);
+    libContextMenu.style.left = `${Math.max(5, posX)}px`;
+    libContextMenu.style.top = `${Math.max(5, posY)}px`;
+  }
+
+  if (libContextMenu) {
+    libContextMenu.querySelectorAll('.ctxItem').forEach((itemEl) => {
+      itemEl.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = itemEl.getAttribute('data-action');
+        const target = activeContextItem;
+        hideLibContextMenu();
+        if (!target) return;
+
+        if (action === 'rename') {
+          const curName = window.retro.basename(target.path);
+          const newName = prompt(`Rename ${target.type === 'dir' ? 'folder' : 'file'}:`, curName);
+          if (newName && newName.trim() && newName.trim() !== curName) {
+            const res = await window.retro.renameItem(target.path, newName.trim());
+            if (res && res.error) {
+              alert(`Could not rename: ${res.error}`);
+            } else {
+              await libNavigate(libCurrentPath);
+            }
+          }
+        } else if (action === 'reveal') {
+          await window.retro.revealItem(target.path);
+        } else if (action === 'play') {
+          if (target.type === 'file') {
+            addFiles([target.path]);
+          } else {
+            const files = await window.retro.scanAudioDir(target.path);
+            if (files && files.length) addFiles(files);
+          }
+        } else if (action === 'trash') {
+          const base = window.retro.basename(target.path);
+          if (confirm(`Move "${base}" to macOS Trash?`)) {
+            const res = await window.retro.trashItem(target.path);
+            if (res && res.error) {
+              alert(`Could not trash item: ${res.error}`);
+            } else {
+              await libNavigate(libCurrentPath);
+            }
+          }
+        }
+      });
+    });
+  }
+
+  window.addEventListener('click', (e) => {
+    if (libContextMenu && !libContextMenu.contains(e.target)) hideLibContextMenu();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideLibContextMenu();
+  });
 
   function libRenderList() {
     libList.innerHTML = '';
@@ -807,12 +878,49 @@
       li.className = 'dir';
       li.innerHTML = `<span>📁</span><span class="name">${window.retro.basename(dirPath)}</span>`;
       li.addEventListener('click', () => libNavigate(dirPath));
+
+      // Right-click context menu
+      li.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showLibContextMenu(e.clientX, e.clientY, { type: 'dir', path: dirPath });
+      });
+
+      // Drop target to sort songs into this folder
+      li.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('text/macamp-file')) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'move';
+          li.classList.add('dragover');
+        }
+      });
+      li.addEventListener('dragleave', () => li.classList.remove('dragover'));
+      li.addEventListener('drop', async (e) => {
+        const sourceFile = e.dataTransfer.getData('text/macamp-file');
+        if (sourceFile) {
+          e.preventDefault();
+          e.stopPropagation();
+          li.classList.remove('dragover');
+          const toMove = (librarySelected.has(sourceFile) && librarySelected.size > 1)
+            ? Array.from(librarySelected)
+            : [sourceFile];
+          for (const src of toMove) {
+            await window.retro.moveItem(src, dirPath);
+          }
+          librarySelected.clear();
+          await libNavigate(libCurrentPath);
+        }
+      });
+
       libList.appendChild(li);
     }
     for (const filePath of libEntries.files) {
       const li = document.createElement('li');
       li.className = 'file' + (librarySelected.has(filePath) ? ' selected' : '');
+      li.draggable = true;
       li.innerHTML = `<span>🎵</span><span class="name">${window.retro.basename(filePath)}</span>`;
+
       li.addEventListener('click', () => {
         if (librarySelected.has(filePath)) {
           librarySelected.delete(filePath);
@@ -823,7 +931,27 @@
         }
         libAddSelectedBtn.textContent = `Add Selected (${librarySelected.size})`;
       });
+
       li.addEventListener('dblclick', () => { addFiles([filePath]); });
+
+      // Right-click context menu
+      li.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showLibContextMenu(e.clientX, e.clientY, { type: 'file', path: filePath });
+      });
+
+      // Drag songs
+      li.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/macamp-file', filePath);
+        e.dataTransfer.setData('text/plain', filePath);
+        e.dataTransfer.effectAllowed = 'move';
+        li.classList.add('dragging');
+      });
+      li.addEventListener('dragend', () => {
+        li.classList.remove('dragging');
+      });
+
       libList.appendChild(li);
     }
     libAddSelectedBtn.textContent = `Add Selected (${librarySelected.size})`;
@@ -845,15 +973,75 @@
     libEntries = { dirs: result.dirs || [], files: result.files || [] };
     librarySelected.clear();
     libPathEl.textContent = libCurrentPath;
-    libPathEl.title = libCurrentPath;
+    libPathEl.title = `${libCurrentPath} (click to open in Finder)`;
     libRenderList();
   }
 
-  el('libUp').addEventListener('click', () => {
+  // Open in Finder
+  const libOpenFinderBtn = el('libOpenFinder');
+  if (libOpenFinderBtn) {
+    libOpenFinderBtn.addEventListener('click', () => {
+      if (libCurrentPath) window.retro.openPath(libCurrentPath);
+    });
+  }
+  libPathEl.addEventListener('click', () => {
+    if (libCurrentPath) window.retro.openPath(libCurrentPath);
+  });
+
+  // Create new folder
+  const libNewFolderBtn = el('libNewFolder');
+  if (libNewFolderBtn) {
+    libNewFolderBtn.addEventListener('click', async () => {
+      if (!libCurrentPath) return;
+      const folderName = prompt(`Create new folder in ${window.retro.basename(libCurrentPath)}:`, 'New Folder');
+      if (folderName && folderName.trim()) {
+        const res = await window.retro.createDir(libCurrentPath, folderName.trim());
+        if (res && res.error) {
+          alert(`Could not create folder: ${res.error}`);
+        } else {
+          await libNavigate(libCurrentPath);
+        }
+      }
+    });
+  }
+
+  const libUpBtn = el('libUp');
+  libUpBtn.addEventListener('click', () => {
     if (!libCurrentPath) return;
     const parent = window.retro.dirname(libCurrentPath);
     if (parent && parent !== libCurrentPath) libNavigate(parent);
   });
+  // Also allow dragging files into the Up button to move to parent folder!
+  libUpBtn.addEventListener('dragover', (e) => {
+    if (e.dataTransfer.types.includes('text/macamp-file') && libCurrentPath) {
+      const parent = window.retro.dirname(libCurrentPath);
+      if (parent && parent !== libCurrentPath) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        libUpBtn.classList.add('dragover');
+      }
+    }
+  });
+  libUpBtn.addEventListener('dragleave', () => libUpBtn.classList.remove('dragover'));
+  libUpBtn.addEventListener('drop', async (e) => {
+    const sourceFile = e.dataTransfer.getData('text/macamp-file');
+    if (sourceFile && libCurrentPath) {
+      const parent = window.retro.dirname(libCurrentPath);
+      if (parent && parent !== libCurrentPath) {
+        e.preventDefault();
+        e.stopPropagation();
+        libUpBtn.classList.remove('dragover');
+        const toMove = (librarySelected.has(sourceFile) && librarySelected.size > 1)
+          ? Array.from(librarySelected)
+          : [sourceFile];
+        for (const src of toMove) await window.retro.moveItem(src, parent);
+        librarySelected.clear();
+        await libNavigate(libCurrentPath);
+      }
+    }
+  });
+
   libAddSelectedBtn.addEventListener('click', () => {
     if (librarySelected.size) addFiles(Array.from(librarySelected));
     librarySelected.clear();

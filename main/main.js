@@ -183,6 +183,88 @@ ipcMain.handle('fs:scan-audio-dir', (_e, dirPath) => {
   return out;
 });
 
+ipcMain.handle('fs:open-path', async (_e, dirPath) => {
+  try {
+    if (!dirPath) return false;
+    await shell.openPath(dirPath);
+    return true;
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:reveal-item', (_e, targetPath) => {
+  try {
+    if (!targetPath) return false;
+    shell.showItemInFolder(targetPath);
+    return true;
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:create-dir', (_e, parentPath, folderName) => {
+  try {
+    if (!parentPath || !folderName) throw new Error('Missing path or folder name');
+    const safeName = folderName.trim().replace(/[/\\:]/g, '-');
+    const newPath = path.join(parentPath, safeName);
+    if (!fs.existsSync(newPath)) {
+      fs.mkdirSync(newPath, { recursive: true });
+    }
+    return { success: true, path: newPath };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:rename-item', (_e, oldPath, newName) => {
+  try {
+    if (!oldPath || !newName) throw new Error('Missing path or new name');
+    const dir = path.dirname(oldPath);
+    const safeName = newName.trim().replace(/[/\\:]/g, '-');
+    const newPath = path.join(dir, safeName);
+    if (oldPath !== newPath) {
+      if (fs.existsSync(newPath)) throw new Error('An item with that name already exists');
+      fs.renameSync(oldPath, newPath);
+    }
+    return { success: true, oldPath, newPath };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:move-item', (_e, sourcePath, destDir) => {
+  try {
+    if (!sourcePath || !destDir) throw new Error('Missing source or destination');
+    const baseName = path.basename(sourcePath);
+    let destPath = path.join(destDir, baseName);
+    if (sourcePath === destPath) return { success: true, path: destPath };
+    if (fs.existsSync(destPath)) {
+      const ext = path.extname(baseName);
+      const nameWithoutExt = path.basename(baseName, ext);
+      let counter = 1;
+      while (fs.existsSync(destPath)) {
+        destPath = path.join(destDir, `${nameWithoutExt} (${counter})${ext}`);
+        counter++;
+      }
+    }
+    fs.renameSync(sourcePath, destPath);
+    return { success: true, oldPath: sourcePath, newPath: destPath };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:trash-item', async (_e, targetPath) => {
+  try {
+    if (!targetPath) return false;
+    await shell.trashItem(targetPath);
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 ipcMain.handle('files:open-folder-dialog', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Add Folder to Playlist',
