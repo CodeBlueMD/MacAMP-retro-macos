@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('retro', {
   googleListFolder: (folderIdOrUrl) => ipcRenderer.invoke('google:list-folder', folderIdOrUrl),
   googleGetTrack: (fileId) => ipcRenderer.invoke('google:get-track', fileId),
   googleOpenConfig: () => ipcRenderer.invoke('google:open-config'),
+  googleSyncMusic: (folder) => ipcRenderer.invoke('gdrive:sync-music', folder),
 
   youtubeStatus: () => ipcRenderer.invoke('youtube:status'),
   youtubeDownload: (url) => ipcRenderer.invoke('youtube:download', url),

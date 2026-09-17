@@ -266,6 +266,54 @@ ipcMain.handle('fs:trash-item', async (_e, targetPath) => {
   }
 });
 
+ipcMain.handle('gdrive:sync-music', async (_e, folderName) => {
+  try {
+    const gdriveRoots = listCloudStorageChildren('GoogleDrive-');
+    if (gdriveRoots.length === 0) {
+      throw new Error('Google Drive desktop folder not found. Please ensure Google Drive app is running.');
+    }
+    const gdriveRoot = gdriveRoots[0];
+    const accountName = path.basename(gdriveRoot).replace(/^GoogleDrive-/, '');
+    const myDrive = existing(path.join(gdriveRoot, 'My Drive')) || gdriveRoot;
+
+    const targetDir = path.join(myDrive, 'Music', 'MacAMP');
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    const macampMusic = youtubeDownloader.getMusicDir();
+    if (folderName) {
+      const srcFolder = path.join(macampMusic, folderName);
+      const destFolder = path.join(targetDir, folderName);
+      if (fs.existsSync(srcFolder)) {
+        fs.cpSync(srcFolder, destFolder, { recursive: true });
+      }
+    } else {
+      if (fs.existsSync(macampMusic)) {
+        fs.cpSync(macampMusic, targetDir, { recursive: true });
+      }
+    }
+
+    // Count synced tracks
+    let count = 0;
+    function countAudioFiles(dir) {
+      try {
+        for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (item.name.startsWith('.')) continue;
+          const full = path.join(dir, item.name);
+          if (item.isDirectory()) countAudioFiles(full);
+          else if (AUDIO_EXTS.has(path.extname(item.name).toLowerCase())) count++;
+        }
+      } catch {}
+    }
+    countAudioFiles(targetDir);
+
+    return { success: true, count, targetDir, account: accountName };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 ipcMain.handle('files:open-folder-dialog', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Add Folder to Playlist',

@@ -348,14 +348,14 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 /* ---------- Google Drive ---------- */
-#gdriveBar { display: flex; align-items: center; gap: 6px; font-size: 9px; }
-.gdriveStatus { flex: 1; color: var(--text-dim); }
+#gdriveBar { display: flex; align-items: center; gap: 6px; font-size: 9px; flex-wrap: wrap; }
+.gdriveStatus { flex: 1; color: var(--text-dim); min-width: 140px; }
 .gdriveStatus.connected { color: var(--accent); }
-#gdriveFolderRow { display: flex; gap: 6px; }
-#gdriveFolderRow input[type=text] {
-  flex: 1; font: 11px 'Courier New', monospace; background: var(--input-bg);
-  border: 1px solid var(--panel-border); color: var(--text); padding: 4px 6px; border-radius: 3px;
-}
+.gdriveStatus.active { color: var(--accent); }
+.gdriveStatus.error { color: #ff6b6b; }
+.gdriveNote { font-size: 9px; color: var(--text-dim); margin-top: 4px; line-height: 1.3; }
+.gdriveNote .dim { opacity: 0.8; }
+.gdriveNote b { color: var(--accent); }
 
 /* ---------- YouTube Downloader ---------- */
 #youtubeBar { display: flex; align-items: center; gap: 6px; font-size: 9px; margin-top: 2px; }

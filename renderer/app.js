@@ -347,45 +347,68 @@
 
   // ---------- Google Drive ----------
   const gdriveStatus = el('gdriveStatus');
-  const btnGdriveConnect = el('btnGdriveConnect');
-  const gdriveFolderRow = el('gdriveFolderRow');
-  const gdriveFolderInput = el('gdriveFolderInput');
+  const btnGdriveOpenLib = el('btnGdriveOpenLib');
+  const btnGdriveOpenFinder = el('btnGdriveOpenFinder');
+  const btnGdriveSync = el('btnGdriveSync');
+  let gdriveDesktopPath = null;
+  let gdriveAccount = null;
 
   async function refreshGdriveStatus() {
-    const s = await window.retro.googleStatus();
-    if (!s.configured) {
-      gdriveStatus.textContent = 'Google Drive: not set up yet (click Setup)';
-      gdriveStatus.classList.remove('connected'); btnGdriveConnect.textContent = 'Connect'; gdriveFolderRow.classList.add('hidden');
-    } else if (!s.connected) {
-      gdriveStatus.textContent = 'Google Drive: not connected';
-      gdriveStatus.classList.remove('connected'); btnGdriveConnect.textContent = 'Connect'; gdriveFolderRow.classList.add('hidden');
-    } else {
-      gdriveStatus.textContent = 'Google Drive: connected';
-      gdriveStatus.classList.add('connected'); btnGdriveConnect.textContent = 'Disconnect'; gdriveFolderRow.classList.remove('hidden');
+    try {
+      const clouds = await window.retro.cloudRoots();
+      const gdriveRoot = clouds.find((c) => c.id === 'gdrive-desktop');
+      if (gdriveRoot && gdriveRoot.path) {
+        gdriveDesktopPath = gdriveRoot.path;
+        const match = gdriveDesktopPath.match(/GoogleDrive-([^/]+)/);
+        gdriveAccount = match ? match[1] : 'Desktop';
+        gdriveStatus.className = 'gdriveStatus connected';
+        gdriveStatus.textContent = `Google Drive: Desktop Active (${gdriveAccount})`;
+      } else {
+        gdriveStatus.className = 'gdriveStatus';
+        gdriveStatus.textContent = 'Google Drive: Desktop folder not found';
+      }
+    } catch {
+      gdriveStatus.className = 'gdriveStatus';
+      gdriveStatus.textContent = 'Google Drive: Ready';
     }
-    return s;
   }
   refreshGdriveStatus();
-  btnGdriveConnect.addEventListener('click', async () => {
-    const s = await window.retro.googleStatus();
-    if (s.connected) { await window.retro.googleDisconnect(); }
-    else {
-      btnGdriveConnect.disabled = true;
-      gdriveStatus.textContent = 'Google Drive: sign in from the browser tab that just opened…';
-      try { await window.retro.googleConnect(); }
-      catch (err) { gdriveStatus.textContent = `Google Drive: ${err.message || 'connection failed'}`; btnGdriveConnect.disabled = false; return; }
-      btnGdriveConnect.disabled = false;
-    }
-    refreshGdriveStatus();
-  });
-  el('btnGdriveConfig').addEventListener('click', () => window.retro.googleOpenConfig());
-  el('btnGdriveLoad').addEventListener('click', async () => {
-    const input = gdriveFolderInput.value.trim(); if (!input) return;
-    const btnLoad = el('btnGdriveLoad'); btnLoad.disabled = true; btnLoad.textContent = 'Loading…';
-    try { addDriveFiles(await window.retro.googleListFolder(input)); }
-    catch (err) { gdriveStatus.textContent = `Google Drive: ${err.message || 'load failed'}`; }
-    btnLoad.disabled = false; btnLoad.textContent = 'Load';
-  });
+
+  if (btnGdriveOpenLib) {
+    btnGdriveOpenLib.addEventListener('click', () => {
+      if (gdriveDesktopPath && typeof libNavigate === 'function') {
+        libNavigate(gdriveDesktopPath);
+      }
+    });
+  }
+
+  if (btnGdriveOpenFinder) {
+    btnGdriveOpenFinder.addEventListener('click', () => {
+      if (gdriveDesktopPath) {
+        window.retro.openPath(gdriveDesktopPath);
+      }
+    });
+  }
+
+  if (btnGdriveSync) {
+    btnGdriveSync.addEventListener('click', async () => {
+      btnGdriveSync.disabled = true;
+      gdriveStatus.className = 'gdriveStatus active';
+      gdriveStatus.textContent = 'Syncing MacAMP music to Google Drive…';
+
+      try {
+        const res = await window.retro.googleSyncMusic();
+        if (res.error) throw new Error(res.error);
+        gdriveStatus.className = 'gdriveStatus connected';
+        gdriveStatus.textContent = `Done! Synced ${res.count} track${res.count === 1 ? '' : 's'} to Google Drive (${res.account}). Synced to your phone!`;
+      } catch (err) {
+        gdriveStatus.className = 'gdriveStatus error';
+        gdriveStatus.textContent = `Sync failed: ${err.message}`;
+      } finally {
+        btnGdriveSync.disabled = false;
+      }
+    });
+  }
 
   // ---------- Source Dropdown Elements (YouTube / Spotify / Google Drive) ----------
   const btnYoutubeToggle = el('btnYoutubeToggle');
