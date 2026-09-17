@@ -349,7 +349,7 @@
   const gdriveStatus = el('gdriveStatus');
   const btnGdriveOpenLib = el('btnGdriveOpenLib');
   const btnGdriveOpenFinder = el('btnGdriveOpenFinder');
-  const btnGdriveSync = el('btnGdriveSync');
+  const btnGdriveOpenMusic = el('btnGdriveOpenMusic');
   let gdriveDesktopPath = null;
   let gdriveAccount = null;
 
@@ -362,7 +362,7 @@
         const match = gdriveDesktopPath.match(/GoogleDrive-([^/]+)/);
         gdriveAccount = match ? match[1] : 'Desktop';
         gdriveStatus.className = 'gdriveStatus connected';
-        gdriveStatus.textContent = `Google Drive: Desktop Active (${gdriveAccount})`;
+        gdriveStatus.textContent = `Google Drive: Auto-Sync Active (${gdriveAccount})`;
       } else {
         gdriveStatus.className = 'gdriveStatus';
         gdriveStatus.textContent = 'Google Drive: Desktop folder not found';
@@ -390,23 +390,13 @@
     });
   }
 
-  if (btnGdriveSync) {
-    btnGdriveSync.addEventListener('click', async () => {
-      btnGdriveSync.disabled = true;
-      gdriveStatus.className = 'gdriveStatus active';
-      gdriveStatus.textContent = 'Syncing MacAMP music to Google Drive…';
-
+  if (btnGdriveOpenMusic) {
+    btnGdriveOpenMusic.addEventListener('click', async () => {
       try {
-        const res = await window.retro.googleSyncMusic();
-        if (res.error) throw new Error(res.error);
-        gdriveStatus.className = 'gdriveStatus connected';
-        gdriveStatus.textContent = `Done! Synced ${res.count} track${res.count === 1 ? '' : 's'} to Google Drive (${res.account}). Synced to your phone!`;
-      } catch (err) {
-        gdriveStatus.className = 'gdriveStatus error';
-        gdriveStatus.textContent = `Sync failed: ${err.message}`;
-      } finally {
-        btnGdriveSync.disabled = false;
-      }
+        const homes = await window.retro.homeDirs();
+        const macampBase = homes.macamp || (homes.music ? `${homes.music}/MacAMP` : null);
+        if (macampBase) window.retro.openPath(macampBase);
+      } catch {}
     });
   }
 
