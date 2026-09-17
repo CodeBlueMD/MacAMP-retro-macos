@@ -327,10 +327,20 @@ async function downloadTrackBatch({ tracks, folderName, albumName, coverArtUrl }
   for (let i = 0; i < tracks.length; i++) {
     if (batchCancelled) break;
     const t = tracks[i];
-    const query = `ytsearch1:${t.artists ? t.artists + ' - ' : ''}${t.title} audio`;
-    const cleanTitle = t.title.replace(/[/\\:?*"<>|]/g, '_').trim();
-    const cleanArtist = (t.artists || '').split(',')[0].replace(/[/\\:?*"<>|]/g, '_').trim();
-    const filename = cleanArtist ? `${cleanArtist} - ${cleanTitle}` : cleanTitle;
+    const cleanTitle = t.title.replace(/[/\\:?*"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+    const firstArtist = (t.artists || '').split(',')[0].replace(/[/\\:?*"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+    const filenameArtist = firstArtist.replace(/[/\\:?*"<>|]/g, '_').trim();
+    const filenameTitle = cleanTitle.replace(/[/\\:?*"<>|]/g, '_').trim();
+    const filename = filenameArtist ? `${filenameArtist} - ${filenameTitle}` : filenameTitle;
+
+    // Build candidate search queries from most specific to broader fallback
+    const candidateQueries = [];
+    if (firstArtist) {
+      candidateQueries.push(`ytsearch1:${firstArtist} ${cleanTitle} audio`);
+      candidateQueries.push(`ytsearch1:${firstArtist} ${cleanTitle}`);
+    }
+    candidateQueries.push(`ytsearch1:${cleanTitle} audio`);
+    candidateQueries.push(`ytsearch1:${cleanTitle}`);
 
     if (onProgress) {
       onProgress({
@@ -343,30 +353,35 @@ async function downloadTrackBatch({ tracks, folderName, albumName, coverArtUrl }
       });
     }
 
-    const res = await downloadSingleTrack(
-      {
-        query,
-        destDir,
-        filename,
-        metadata: {
-          title: t.title,
-          artist: t.artists,
-          album: albumName || safeFolderName,
-        },
-      },
-      (p) => {
-        if (onProgress) {
-          onProgress({
-            index: i + 1,
-            total: tracks.length,
+    let res = { success: false };
+    for (const query of candidateQueries) {
+      if (batchCancelled) break;
+      res = await downloadSingleTrack(
+        {
+          query,
+          destDir,
+          filename,
+          metadata: {
             title: t.title,
-            artists: t.artists,
-            percent: p.percent || '0%',
-            text: `[${i + 1}/${tracks.length}] ${t.title} (${p.percent || '…'})`,
-          });
+            artist: t.artists,
+            album: albumName || safeFolderName,
+          },
+        },
+        (p) => {
+          if (onProgress) {
+            onProgress({
+              index: i + 1,
+              total: tracks.length,
+              title: t.title,
+              artists: t.artists,
+              percent: p.percent || '0%',
+              text: `[${i + 1}/${tracks.length}] ${t.title} (${p.percent || '…'})`,
+            });
+          }
         }
-      }
-    );
+      );
+      if (res.success && res.filePath) break;
+    }
 
     if (res.success && res.filePath) {
       downloaded.push(res.filePath);

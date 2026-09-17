@@ -526,6 +526,7 @@
   const spotifyInput = el('spotifyInput');
   const btnSpotifyLoad = el('btnSpotifyLoad');
   const btnSpotifyCancel = el('btnSpotifyCancel');
+  const btnSpotifyOpenFolder = el('btnSpotifyOpenFolder');
   const spotifyProgressWrap = el('spotifyProgressWrap');
   const spotifyProgressBar = el('spotifyProgressBar');
   const spotifyStatus = el('spotifyStatus');
@@ -545,7 +546,16 @@
   const btnSpotifyStartDownload = el('btnSpotifyStartDownload');
 
   let currentSpotifyData = null;
+  let currentSpotifyDestDir = null;
   const selectedSpotifyTrackIds = new Set();
+
+  if (btnSpotifyOpenFolder) {
+    btnSpotifyOpenFolder.addEventListener('click', () => {
+      if (currentSpotifyDestDir) {
+        window.retro.openPath(currentSpotifyDestDir);
+      }
+    });
+  }
 
   function openSpotifyModal(data) {
     currentSpotifyData = data;
@@ -694,10 +704,23 @@
     spotifyRow.classList.remove('hidden');
     spotifyProgressWrap.classList.remove('hidden');
     btnSpotifyCancel.classList.remove('hidden');
+    if (btnSpotifyOpenFolder) btnSpotifyOpenFolder.classList.remove('hidden');
     btnSpotifyLoad.disabled = true;
     spotifyProgressBar.style.width = '0%';
     spotifyStatus.className = 'youtubeStatus active';
-    spotifyStatus.textContent = `Queued ${selectedTracks.length} songs from "${currentSpotifyData.title}"…`;
+    spotifyStatus.textContent = `Queued ${selectedTracks.length} songs into "${folderName}"…`;
+
+    // Immediately resolve and navigate Library to ~/Music/MacAMP/<folderName>
+    try {
+      const homes = await window.retro.homeDirs();
+      const macampBase = homes.macamp || (homes.music ? `${homes.music}/MacAMP` : null);
+      if (macampBase) {
+        currentSpotifyDestDir = `${macampBase}/${folderName}`;
+        if (typeof libNavigate === 'function') {
+          libNavigate(currentSpotifyDestDir).catch(() => {});
+        }
+      }
+    } catch {}
 
     try {
       const res = await window.retro.spotifyDownloadBatch({
@@ -709,12 +732,15 @@
 
       spotifyStatus.className = 'youtubeStatus active';
       spotifyStatus.textContent = res.cancelled
-        ? `Stopped. Downloaded ${res.downloadedCount} tracks.`
-        : `Done! Downloaded ${res.downloadedCount} tracks into "${folderName}".`;
+        ? `Stopped. Downloaded ${res.downloadedCount} tracks into "${folderName}".`
+        : `Done! Downloaded ${res.downloadedCount} of ${res.total} tracks into "${folderName}".`;
       spotifyProgressBar.style.width = '100%';
 
-      if (typeof libNavigate === 'function' && res.destDir) {
-        libNavigate(res.destDir);
+      if (res.destDir) {
+        currentSpotifyDestDir = res.destDir;
+        if (typeof libNavigate === 'function') {
+          libNavigate(res.destDir);
+        }
       }
     } catch (err) {
       spotifyStatus.className = 'youtubeStatus error';
@@ -725,7 +751,7 @@
       setTimeout(() => {
         spotifyProgressWrap.classList.add('hidden');
         spotifyProgressBar.style.width = '0%';
-      }, 6000);
+      }, 7000);
     }
   });
 
@@ -749,6 +775,10 @@
       addFiles([trackPath]);
       spotifyStatus.className = 'youtubeStatus active';
       spotifyStatus.textContent = `Added: ${baseName(trackPath)}`;
+      // Refresh library list if currently browsing the downloaded folder
+      if (libCurrentPath && currentSpotifyDestDir && libCurrentPath === currentSpotifyDestDir) {
+        libNavigate(libCurrentPath).catch(() => {});
+      }
     });
   }
 
