@@ -363,6 +363,110 @@ input[type=range]::-webkit-slider-thumb {
   transition: width 0.2s ease-out;
 }
 
+/* ---------- Spotify Importer ---------- */
+.spotifyBtn {
+  color: #1db954 !important;
+  border-color: rgba(29, 185, 84, 0.4) !important;
+}
+.spotifyBtn:hover {
+  background: #1db954 !important;
+  color: #000 !important;
+}
+.spotifyAccent {
+  background: #1db954 !important;
+  color: #000 !important;
+  font-weight: bold;
+}
+#spotifyRow { display: flex; flex-direction: column; gap: 5px; margin-top: 2px; }
+#spotifyInput {
+  flex: 1; font: 11px 'Courier New', monospace; background: var(--input-bg);
+  border: 1px solid var(--panel-border); color: var(--text); padding: 4px 6px; border-radius: 3px;
+}
+#spotifyProgressWrap {
+  width: 100%; height: 6px; background: var(--input-bg);
+  border: 1px solid var(--panel-border); border-radius: 2px; overflow: hidden;
+}
+#spotifyProgressBar {
+  width: 0%; height: 100%; background: #1db954;
+  transition: width 0.2s ease-out;
+}
+.spotifyStatusRow {
+  display: flex; align-items: center; gap: 6px; justify-content: space-between;
+}
+
+/* ---------- Spotify Importer Modal ---------- */
+.retroModalOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 99998; backdrop-filter: blur(3px);
+}
+.retroModalOverlay.hidden { display: none; }
+.retroModalCard {
+  background: var(--panel-bg); border: 2px solid var(--panel-border);
+  border-radius: 5px; box-shadow: 0 12px 36px rgba(0,0,0,0.85);
+  width: 580px; max-width: 92vw; max-height: 85vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.modalCloseBtn {
+  padding: 1px 6px; font-size: 10px; margin-left: auto;
+}
+.modalBody {
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+  flex: 1; overflow: hidden;
+}
+.spotifyHeader {
+  display: flex; gap: 12px; align-items: center;
+}
+.spotifyCoverImg {
+  width: 72px; height: 72px; border-radius: 4px; object-fit: cover;
+  border: 1px solid var(--panel-border); background: #111; flex-shrink: 0;
+}
+.spotifyMeta {
+  flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;
+}
+.spotifyTitleText {
+  font-weight: bold; font-size: 14px; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.spotifySubtitleText {
+  font-size: 11px; color: var(--text-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.spotifySaveTo {
+  display: flex; align-items: center; gap: 6px; font-size: 10px; margin-top: 4px; color: var(--text-dim);
+}
+.spotifySaveTo input {
+  flex: 1; font: 10px 'Courier New', monospace; background: var(--input-bg);
+  border: 1px solid var(--panel-border); color: var(--text); padding: 3px 6px; border-radius: 3px;
+}
+.spotifyTrackActionRow {
+  display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 4px 2px;
+  border-bottom: 1px solid var(--panel-border); color: var(--text);
+}
+.spotifyTrackActionRow .badge {
+  font-size: 10px; font-family: monospace; color: var(--text-dim);
+}
+.spotifyTrackListWrap {
+  flex: 1; min-height: 220px; max-height: 340px; overflow-y: auto;
+  background: var(--input-bg); border: 1px solid var(--panel-border); border-radius: 3px;
+}
+#spotifyTrackList {
+  list-style: none; margin: 0; padding: 0; font-size: 11px;
+}
+#spotifyTrackList li {
+  display: flex; align-items: center; gap: 8px; padding: 5px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.03); cursor: pointer; user-select: none;
+}
+#spotifyTrackList li:hover { background: rgba(255,255,255,0.06); }
+#spotifyTrackList li input[type=checkbox] { cursor: pointer; }
+#spotifyTrackList li .sIdx { color: var(--text-dim); width: 22px; font-size: 10px; font-family: monospace; }
+#spotifyTrackList li .sTitle { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; }
+#spotifyTrackList li .sArtist { flex: 1; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+#spotifyTrackList li .sDur { color: var(--text-dim); font-size: 10px; font-family: monospace; }
+.modalFooter {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 6px;
+}
+
 /* ---------- Buttons ---------- */
 .smallbtn {
   font-size: 9px; padding: 4px 10px; font-weight: bold; letter-spacing: 0.5px;

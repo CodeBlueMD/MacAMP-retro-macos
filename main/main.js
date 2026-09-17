@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const googleDrive = require('./google-drive');
 const youtubeDownloader = require('./youtube-downloader');
+const spotifyResolver = require('./spotify-resolver');
 
 let mainWindow;
 
@@ -338,3 +339,25 @@ ipcMain.handle('youtube:download', async (_e, url) => {
   );
 });
 ipcMain.handle('youtube:cancel', () => youtubeDownloader.cancel());
+
+ipcMain.handle('spotify:resolve', async (_e, url) => {
+  return spotifyResolver.resolveSpotifyUrl(url);
+});
+
+ipcMain.handle('spotify:download-batch', async (_e, options) => {
+  return youtubeDownloader.downloadTrackBatch(
+    options,
+    (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('spotify:batch-progress', progress);
+      }
+    },
+    (trackPath) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('spotify:track-added', trackPath);
+      }
+    }
+  );
+});
+
+ipcMain.handle('spotify:cancel', () => youtubeDownloader.cancelBatch());

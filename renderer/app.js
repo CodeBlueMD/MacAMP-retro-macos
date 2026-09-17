@@ -520,6 +520,238 @@
     });
   }
 
+  // ---------- Spotify Importer ----------
+  const btnSpotifyToggle = el('btnSpotifyToggle');
+  const spotifyRow = el('spotifyRow');
+  const spotifyInput = el('spotifyInput');
+  const btnSpotifyLoad = el('btnSpotifyLoad');
+  const btnSpotifyCancel = el('btnSpotifyCancel');
+  const spotifyProgressWrap = el('spotifyProgressWrap');
+  const spotifyProgressBar = el('spotifyProgressBar');
+  const spotifyStatus = el('spotifyStatus');
+  const dashAddSpotify = el('dashAddSpotify');
+
+  // Spotify Modal Elements
+  const spotifyModal = el('spotifyModal');
+  const btnCloseSpotifyModal = el('btnCloseSpotifyModal');
+  const btnCancelSpotifyModal = el('btnCancelSpotifyModal');
+  const spotifyCover = el('spotifyCover');
+  const spotifyTitle = el('spotifyTitle');
+  const spotifySubtitle = el('spotifySubtitle');
+  const spotifyFolderInput = el('spotifyFolderInput');
+  const spotifySelectAll = el('spotifySelectAll');
+  const spotifySelectedCount = el('spotifySelectedCount');
+  const spotifyTrackList = el('spotifyTrackList');
+  const btnSpotifyStartDownload = el('btnSpotifyStartDownload');
+
+  let currentSpotifyData = null;
+  const selectedSpotifyTrackIds = new Set();
+
+  function openSpotifyModal(data) {
+    currentSpotifyData = data;
+    selectedSpotifyTrackIds.clear();
+    data.tracks.forEach((t) => selectedSpotifyTrackIds.add(t.id));
+
+    spotifyTitle.textContent = data.title;
+    spotifySubtitle.textContent = `${data.subtitle ? data.subtitle + ' · ' : ''}${data.tracks.length} tracks`;
+    if (data.coverArt) {
+      spotifyCover.src = data.coverArt;
+      spotifyCover.style.display = 'block';
+    } else {
+      spotifyCover.style.display = 'none';
+    }
+    spotifyFolderInput.value = data.title.replace(/[/\\:?*"<>|]/g, '-');
+    spotifySelectAll.checked = true;
+
+    renderSpotifyTrackList();
+    spotifyModal.classList.remove('hidden');
+  }
+
+  function closeSpotifyModal() {
+    spotifyModal.classList.add('hidden');
+  }
+
+  function renderSpotifyTrackList() {
+    if (!currentSpotifyData) return;
+    spotifyTrackList.innerHTML = '';
+    currentSpotifyData.tracks.forEach((t) => {
+      const li = document.createElement('li');
+      const isChecked = selectedSpotifyTrackIds.has(t.id);
+      li.innerHTML = `
+        <input type="checkbox" ${isChecked ? 'checked' : ''} />
+        <span class="sIdx">${t.index}</span>
+        <span class="sTitle">${t.title}</span>
+        <span class="sArtist">${t.artists}</span>
+        <span class="sDur">${fmtTime(t.durationSec)}</span>
+      `;
+      const chk = li.querySelector('input');
+      chk.addEventListener('change', (e) => {
+        e.stopPropagation();
+        if (chk.checked) selectedSpotifyTrackIds.add(t.id);
+        else selectedSpotifyTrackIds.delete(t.id);
+        updateSpotifySelectionUI();
+      });
+      li.addEventListener('click', (e) => {
+        if (e.target !== chk) {
+          chk.checked = !chk.checked;
+          chk.dispatchEvent(new Event('change'));
+        }
+      });
+      spotifyTrackList.appendChild(li);
+    });
+    updateSpotifySelectionUI();
+  }
+
+  function updateSpotifySelectionUI() {
+    const count = selectedSpotifyTrackIds.size;
+    const total = currentSpotifyData ? currentSpotifyData.tracks.length : 0;
+    spotifySelectedCount.textContent = `${count} of ${total} selected`;
+    spotifySelectAll.checked = count === total && total > 0;
+    btnSpotifyStartDownload.disabled = count === 0;
+    btnSpotifyStartDownload.textContent = `⬇ Download Selected (${count})`;
+  }
+
+  spotifySelectAll.addEventListener('change', () => {
+    if (!currentSpotifyData) return;
+    if (spotifySelectAll.checked) {
+      currentSpotifyData.tracks.forEach((t) => selectedSpotifyTrackIds.add(t.id));
+    } else {
+      selectedSpotifyTrackIds.clear();
+    }
+    renderSpotifyTrackList();
+  });
+
+  if (btnCloseSpotifyModal) btnCloseSpotifyModal.addEventListener('click', closeSpotifyModal);
+  if (btnCancelSpotifyModal) btnCancelSpotifyModal.addEventListener('click', closeSpotifyModal);
+
+  async function fetchSpotifyData(url) {
+    if (!url) return;
+    spotifyStatus.className = 'youtubeStatus active';
+    spotifyStatus.textContent = 'Resolving Spotify playlist…';
+    btnSpotifyLoad.disabled = true;
+
+    try {
+      const data = await window.retro.spotifyResolve(url);
+      spotifyStatus.className = 'youtubeStatus';
+      spotifyStatus.textContent = `Loaded "${data.title}" (${data.tracks.length} tracks)`;
+      openSpotifyModal(data);
+    } catch (err) {
+      spotifyStatus.className = 'youtubeStatus error';
+      spotifyStatus.textContent = err.message || 'Failed to load Spotify link';
+      alert('Spotify error: ' + (err.message || 'Failed to resolve Spotify link'));
+    } finally {
+      btnSpotifyLoad.disabled = false;
+    }
+  }
+
+  btnSpotifyLoad.addEventListener('click', () => {
+    fetchSpotifyData(spotifyInput.value.trim());
+  });
+  spotifyInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      fetchSpotifyData(spotifyInput.value.trim());
+    }
+  });
+
+  btnSpotifyToggle.addEventListener('click', () => {
+    const isHidden = spotifyRow.classList.contains('hidden');
+    spotifyRow.classList.toggle('hidden', !isHidden);
+    if (isHidden) {
+      spotifyInput.focus();
+    }
+  });
+
+  if (dashAddSpotify) {
+    dashAddSpotify.addEventListener('click', () => {
+      plWin.classList.remove('hidden');
+      btnPL.classList.add('on');
+      spotifyRow.classList.remove('hidden');
+      spotifyInput.focus();
+      spotifyInput.select();
+    });
+  }
+
+  // Auto-detect Spotify URL pasted in YouTube input
+  youtubeInput.addEventListener('input', () => {
+    const val = youtubeInput.value.trim();
+    if (val.includes('spotify.com/') || val.startsWith('spotify:')) {
+      spotifyRow.classList.remove('hidden');
+      spotifyInput.value = val;
+      youtubeInput.value = '';
+      fetchSpotifyData(val);
+    }
+  });
+
+  btnSpotifyStartDownload.addEventListener('click', async () => {
+    if (!currentSpotifyData) return;
+    const selectedTracks = currentSpotifyData.tracks.filter((t) => selectedSpotifyTrackIds.has(t.id));
+    if (selectedTracks.length === 0) return;
+
+    const folderName = (spotifyFolderInput.value || currentSpotifyData.title).trim();
+    closeSpotifyModal();
+
+    spotifyRow.classList.remove('hidden');
+    spotifyProgressWrap.classList.remove('hidden');
+    btnSpotifyCancel.classList.remove('hidden');
+    btnSpotifyLoad.disabled = true;
+    spotifyProgressBar.style.width = '0%';
+    spotifyStatus.className = 'youtubeStatus active';
+    spotifyStatus.textContent = `Queued ${selectedTracks.length} songs from "${currentSpotifyData.title}"…`;
+
+    try {
+      const res = await window.retro.spotifyDownloadBatch({
+        tracks: selectedTracks,
+        folderName,
+        albumName: currentSpotifyData.title,
+        coverArtUrl: currentSpotifyData.coverArt,
+      });
+
+      spotifyStatus.className = 'youtubeStatus active';
+      spotifyStatus.textContent = res.cancelled
+        ? `Stopped. Downloaded ${res.downloadedCount} tracks.`
+        : `Done! Downloaded ${res.downloadedCount} tracks into "${folderName}".`;
+      spotifyProgressBar.style.width = '100%';
+
+      if (typeof libNavigate === 'function' && res.destDir) {
+        libNavigate(res.destDir);
+      }
+    } catch (err) {
+      spotifyStatus.className = 'youtubeStatus error';
+      spotifyStatus.textContent = err.message || 'Batch download failed';
+    } finally {
+      btnSpotifyCancel.classList.add('hidden');
+      btnSpotifyLoad.disabled = false;
+      setTimeout(() => {
+        spotifyProgressWrap.classList.add('hidden');
+        spotifyProgressBar.style.width = '0%';
+      }, 6000);
+    }
+  });
+
+  btnSpotifyCancel.addEventListener('click', async () => {
+    await window.retro.spotifyCancel();
+    spotifyStatus.className = 'youtubeStatus';
+    spotifyStatus.textContent = 'Cancelling download queue…';
+  });
+
+  if (window.retro.onSpotifyBatchProgress) {
+    window.retro.onSpotifyBatchProgress((data) => {
+      spotifyStatus.className = 'youtubeStatus active';
+      spotifyStatus.textContent = data.text;
+      const overallPercent = Math.round(((data.index - 1) / data.total) * 100);
+      spotifyProgressBar.style.width = `${overallPercent}%`;
+    });
+  }
+
+  if (window.retro.onSpotifyBatchTrackAdded) {
+    window.retro.onSpotifyBatchTrackAdded((trackPath) => {
+      addFiles([trackPath]);
+      spotifyStatus.className = 'youtubeStatus active';
+      spotifyStatus.textContent = `Added: ${baseName(trackPath)}`;
+    });
+  }
+
   // ---------- Shuffle / repeat / EQ / PL toggles ----------
   btnShuffle.addEventListener('click', () => { shuffleOn = !shuffleOn; btnShuffle.classList.toggle('on', shuffleOn); });
   btnRepeat.addEventListener('click', () => { repeatOn = !repeatOn; btnRepeat.classList.toggle('on', repeatOn); });

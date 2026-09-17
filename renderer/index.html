@@ -86,6 +86,7 @@
         <div class="winbody">
           <div class="plSourceBar">
             <button id="btnYoutubeToggle" class="smallbtn accent" title="Download & add YouTube audio or playlist">▶ YouTube DL</button>
+            <button id="btnSpotifyToggle" class="smallbtn spotifyBtn" title="Import & download Spotify playlist or album">🟢 Spotify</button>
             <button id="btnGdriveToggle" class="smallbtn" title="Google Drive integration">☁ Drive</button>
             <input id="jumpTo" type="text" placeholder="jump to… (J)" />
           </div>
@@ -100,6 +101,20 @@
               <div id="youtubeProgressBar"></div>
             </div>
             <span id="youtubeStatus" class="youtubeStatus"></span>
+          </div>
+
+          <div id="spotifyRow" class="hidden sourceDropdown">
+            <div class="ytInputRow">
+              <input id="spotifyInput" type="text" placeholder="Paste Spotify playlist, album, or track URL…" />
+              <button id="btnSpotifyLoad" class="smallbtn accent spotifyAccent">⚡ Fetch Songs</button>
+            </div>
+            <div id="spotifyProgressWrap" class="hidden">
+              <div id="spotifyProgressBar"></div>
+            </div>
+            <div class="spotifyStatusRow">
+              <span id="spotifyStatus" class="youtubeStatus"></span>
+              <button id="btnSpotifyCancel" class="smallbtn hidden">Cancel</button>
+            </div>
           </div>
 
           <div id="gdriveRow" class="hidden sourceDropdown">
@@ -212,6 +227,7 @@
         <button id="dashAddFile" class="bigbtn accent">+ Add files</button>
         <button id="dashAddDir" class="bigbtn accent">📁 Add folder</button>
         <button id="dashAddYoutube" class="bigbtn">▶ Add from YouTube</button>
+        <button id="dashAddSpotify" class="bigbtn spotifyBtn">🟢 Import from Spotify</button>
         <div class="btnRow">
           <button id="dashSaveM3u" class="smallbtn">⬇ Save .m3u</button>
           <button id="dashLoadM3u" class="smallbtn">⬆ Load .m3u</button>
@@ -315,6 +331,44 @@
     <div class="ctxItem" data-action="play">🎵 Add to Playlist</div>
     <div class="ctxDivider"></div>
     <div class="ctxItem danger" data-action="trash">🗑️ Move to Trash</div>
+  </div>
+
+  <!-- Spotify Playlist Importer Modal -->
+  <div id="spotifyModal" class="hidden retroModalOverlay">
+    <div class="retroModalCard">
+      <div class="wintitle nodrag">
+        <span class="wintitleText">🟢 SPOTIFY PLAYLIST IMPORTER</span>
+        <button id="btnCloseSpotifyModal" class="smallbtn modalCloseBtn">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="spotifyHeader">
+          <img id="spotifyCover" class="spotifyCoverImg" src="" alt="Cover" />
+          <div class="spotifyMeta">
+            <div id="spotifyTitle" class="spotifyTitleText">Playlist Name</div>
+            <div id="spotifySubtitle" class="spotifySubtitleText">Artists / Spotify</div>
+            <div class="spotifySaveTo">
+              <label>Save to folder:</label>
+              <input id="spotifyFolderInput" type="text" value="" />
+            </div>
+          </div>
+        </div>
+
+        <div class="spotifyTrackActionRow">
+          <label class="checkRow"><input type="checkbox" id="spotifySelectAll" checked /> Select All</label>
+          <span class="flexSpace"></span>
+          <span id="spotifySelectedCount" class="badge">0 selected</span>
+        </div>
+
+        <div class="spotifyTrackListWrap">
+          <ul id="spotifyTrackList"></ul>
+        </div>
+
+        <div class="modalFooter">
+          <button id="btnSpotifyStartDownload" class="bigbtn accent spotifyAccent">⬇ Download Selected</button>
+          <button id="btnCancelSpotifyModal" class="smallbtn">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

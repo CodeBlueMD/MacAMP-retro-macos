@@ -46,4 +46,18 @@ contextBridge.exposeInMainWorld('retro', {
     ipcRenderer.on('youtube:track-added', handler);
     return () => ipcRenderer.removeListener('youtube:track-added', handler);
   },
+
+  spotifyResolve: (url) => ipcRenderer.invoke('spotify:resolve', url),
+  spotifyDownloadBatch: (options) => ipcRenderer.invoke('spotify:download-batch', options),
+  spotifyCancel: () => ipcRenderer.invoke('spotify:cancel'),
+  onSpotifyBatchProgress: (cb) => {
+    const handler = (_e, data) => cb(data);
+    ipcRenderer.on('spotify:batch-progress', handler);
+    return () => ipcRenderer.removeListener('spotify:batch-progress', handler);
+  },
+  onSpotifyBatchTrackAdded: (cb) => {
+    const handler = (_e, filePath) => cb(filePath);
+    ipcRenderer.on('spotify:track-added', handler);
+    return () => ipcRenderer.removeListener('spotify:track-added', handler);
+  },
 });
