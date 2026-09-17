@@ -387,26 +387,85 @@
     btnLoad.disabled = false; btnLoad.textContent = 'Load';
   });
 
-  const btnGdriveToggle = el('btnGdriveToggle');
-  const gdriveRow = el('gdriveRow');
-  if (btnGdriveToggle && gdriveRow) {
-    btnGdriveToggle.addEventListener('click', () => {
-      gdriveRow.classList.toggle('hidden');
-    });
-  }
-
-  // ---------- YouTube Downloader ----------
+  // ---------- Source Dropdown Elements (YouTube / Spotify / Google Drive) ----------
   const btnYoutubeToggle = el('btnYoutubeToggle');
-  const youtubeBar = el('youtubeBar');
-  const youtubeStatus = el('youtubeStatus');
   const youtubeRow = el('youtubeRow');
   const youtubeInput = el('youtubeInput');
   const btnYoutubeDownload = el('btnYoutubeDownload');
   const btnYoutubeCancel = el('btnYoutubeCancel');
   const youtubeProgressWrap = el('youtubeProgressWrap');
   const youtubeProgressBar = el('youtubeProgressBar');
+  const youtubeStatus = el('youtubeStatus');
   const dashAddYoutube = el('dashAddYoutube');
 
+  const btnSpotifyToggle = el('btnSpotifyToggle');
+  const spotifyRow = el('spotifyRow');
+  const spotifyInput = el('spotifyInput');
+  const btnSpotifyDownload = el('btnSpotifyDownload');
+  const btnSpotifyCancel = el('btnSpotifyCancel');
+  const btnSpotifyOpenFolder = el('btnSpotifyOpenFolder');
+  const spotifyProgressWrap = el('spotifyProgressWrap');
+  const spotifyProgressBar = el('spotifyProgressBar');
+  const spotifyStatus = el('spotifyStatus');
+  const dashAddSpotify = el('dashAddSpotify');
+
+  const btnGdriveToggle = el('btnGdriveToggle');
+  const gdriveRow = el('gdriveRow');
+
+  function toggleSourceDropdown(targetName, forceOpen = false) {
+    const sources = [
+      { name: 'youtube', btn: btnYoutubeToggle, row: youtubeRow, input: youtubeInput },
+      { name: 'spotify', btn: btnSpotifyToggle, row: spotifyRow, input: spotifyInput },
+      { name: 'gdrive', btn: btnGdriveToggle, row: gdriveRow, input: gdriveFolderInput }
+    ];
+
+    const target = sources.find((s) => s.name === targetName);
+    if (!target) return;
+
+    const willOpen = forceOpen || target.row.classList.contains('hidden');
+
+    // Close all 3
+    sources.forEach((s) => {
+      s.row.classList.add('hidden');
+      s.btn.classList.remove('on', 'active');
+    });
+
+    if (willOpen) {
+      target.row.classList.remove('hidden');
+      target.btn.classList.add('on', 'active');
+      if (target.input) {
+        setTimeout(() => {
+          target.input.focus();
+          target.input.select();
+        }, 30);
+      }
+    }
+
+    const anyOpen = sources.some((s) => !s.row.classList.contains('hidden'));
+    plWin.classList.toggle('sourceOpen', anyOpen);
+  }
+
+  if (btnGdriveToggle) btnGdriveToggle.addEventListener('click', () => toggleSourceDropdown('gdrive'));
+  if (btnYoutubeToggle) btnYoutubeToggle.addEventListener('click', () => toggleSourceDropdown('youtube'));
+  if (btnSpotifyToggle) btnSpotifyToggle.addEventListener('click', () => toggleSourceDropdown('spotify'));
+
+  if (dashAddYoutube) {
+    dashAddYoutube.addEventListener('click', () => {
+      plWin.classList.remove('hidden');
+      btnPL.classList.add('on');
+      toggleSourceDropdown('youtube', true);
+    });
+  }
+
+  if (dashAddSpotify) {
+    dashAddSpotify.addEventListener('click', () => {
+      plWin.classList.remove('hidden');
+      btnPL.classList.add('on');
+      toggleSourceDropdown('spotify', true);
+    });
+  }
+
+  // ---------- YouTube Downloader ----------
   async function checkYoutubeStatus() {
     if (!window.retro.youtubeStatus) return;
     try {
@@ -421,24 +480,6 @@
     } catch {}
   }
   checkYoutubeStatus();
-
-  btnYoutubeToggle.addEventListener('click', () => {
-    const isHidden = youtubeRow.classList.contains('hidden');
-    youtubeRow.classList.toggle('hidden', !isHidden);
-    if (isHidden) {
-      youtubeInput.focus();
-    }
-  });
-
-  if (dashAddYoutube) {
-    dashAddYoutube.addEventListener('click', () => {
-      plWin.classList.remove('hidden');
-      btnPL.classList.add('on');
-      youtubeRow.classList.remove('hidden');
-      youtubeInput.focus();
-      youtubeInput.select();
-    });
-  }
 
   async function startYoutubeDownload() {
     const url = youtubeInput.value.trim();
@@ -520,37 +561,90 @@
     });
   }
 
-  // ---------- Spotify Importer ----------
-  const btnSpotifyToggle = el('btnSpotifyToggle');
-  const spotifyRow = el('spotifyRow');
-  const spotifyInput = el('spotifyInput');
-  const btnSpotifyLoad = el('btnSpotifyLoad');
-  const btnSpotifyCancel = el('btnSpotifyCancel');
-  const btnSpotifyOpenFolder = el('btnSpotifyOpenFolder');
-  const spotifyProgressWrap = el('spotifyProgressWrap');
-  const spotifyProgressBar = el('spotifyProgressBar');
-  const spotifyStatus = el('spotifyStatus');
-  const dashAddSpotify = el('dashAddSpotify');
-
-  // Spotify Modal Elements
-  const spotifyModal = el('spotifyModal');
-  const btnCloseSpotifyModal = el('btnCloseSpotifyModal');
-  const btnCancelSpotifyModal = el('btnCancelSpotifyModal');
-  const spotifyModalInput = el('spotifyModalInput');
-  const btnSpotifyModalFetch = el('btnSpotifyModalFetch');
-  const spotifyModalDetails = el('spotifyModalDetails');
-  const spotifyCover = el('spotifyCover');
-  const spotifyTitle = el('spotifyTitle');
-  const spotifySubtitle = el('spotifySubtitle');
-  const spotifyFolderInput = el('spotifyFolderInput');
-  const spotifySelectAll = el('spotifySelectAll');
-  const spotifySelectedCount = el('spotifySelectedCount');
-  const spotifyTrackList = el('spotifyTrackList');
-  const btnSpotifyStartDownload = el('btnSpotifyStartDownload');
-
-  let currentSpotifyData = null;
+  // ---------- Spotify Downloader ----------
   let currentSpotifyDestDir = null;
-  const selectedSpotifyTrackIds = new Set();
+
+  async function startSpotifyDownload() {
+    const url = spotifyInput.value.trim();
+    if (!url) return;
+
+    btnSpotifyDownload.disabled = true;
+    btnSpotifyCancel.classList.remove('hidden');
+    spotifyProgressWrap.classList.remove('hidden');
+    spotifyProgressBar.style.width = '5%';
+    spotifyStatus.className = 'youtubeStatus active';
+    spotifyStatus.textContent = 'Resolving Spotify tracks…';
+
+    try {
+      const data = await window.retro.spotifyResolve(url);
+      if (!data.tracks || data.tracks.length === 0) {
+        throw new Error('No tracks found in Spotify link');
+      }
+
+      const folderName = data.title.replace(/[/\\:?*"<>|]/g, '-');
+      spotifyStatus.textContent = `Found "${data.title}" (${data.tracks.length} tracks). Starting download…`;
+      spotifyProgressBar.style.width = '10%';
+
+      // Pre-resolve destination folder and reveal Open Folder button
+      try {
+        const homes = await window.retro.homeDirs();
+        const macampBase = homes.macamp || (homes.music ? `${homes.music}/MacAMP` : null);
+        if (macampBase) {
+          currentSpotifyDestDir = `${macampBase}/${folderName}`;
+          if (btnSpotifyOpenFolder) btnSpotifyOpenFolder.classList.remove('hidden');
+          if (typeof libNavigate === 'function') {
+            libNavigate(currentSpotifyDestDir).catch(() => {});
+          }
+        }
+      } catch {}
+
+      const res = await window.retro.spotifyDownloadBatch({
+        tracks: data.tracks,
+        folderName,
+        albumName: data.title,
+        coverArtUrl: data.coverArt,
+      });
+
+      spotifyStatus.className = 'youtubeStatus active';
+      spotifyStatus.textContent = res.cancelled
+        ? `Stopped. Downloaded ${res.downloadedCount} tracks into "${folderName}".`
+        : `Done! Downloaded ${res.downloadedCount} of ${res.total} tracks into "${folderName}".`;
+      spotifyProgressBar.style.width = '100%';
+      spotifyInput.value = '';
+
+      if (res.destDir) {
+        currentSpotifyDestDir = res.destDir;
+        if (btnSpotifyOpenFolder) btnSpotifyOpenFolder.classList.remove('hidden');
+        if (typeof libNavigate === 'function') {
+          libNavigate(res.destDir).catch(() => {});
+        }
+      }
+    } catch (err) {
+      spotifyStatus.className = 'youtubeStatus error';
+      spotifyStatus.textContent = err.message || 'Spotify download failed';
+    } finally {
+      btnSpotifyDownload.disabled = false;
+      btnSpotifyCancel.classList.add('hidden');
+      setTimeout(() => {
+        spotifyProgressWrap.classList.add('hidden');
+        spotifyProgressBar.style.width = '0%';
+      }, 7000);
+    }
+  }
+
+  btnSpotifyDownload.addEventListener('click', startSpotifyDownload);
+  spotifyInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      startSpotifyDownload();
+    }
+  });
+
+  btnSpotifyCancel.addEventListener('click', async () => {
+    await window.retro.spotifyCancel();
+    spotifyStatus.className = 'youtubeStatus';
+    spotifyStatus.textContent = 'Cancelling download queue…';
+  });
 
   if (btnSpotifyOpenFolder) {
     btnSpotifyOpenFolder.addEventListener('click', () => {
@@ -560,224 +654,15 @@
     });
   }
 
-  function showSpotifyImporterModal(prefillUrl = '') {
-    spotifyModal.classList.remove('hidden');
-    if (prefillUrl) {
-      if (spotifyModalInput) spotifyModalInput.value = prefillUrl;
-      fetchSpotifyData(prefillUrl);
-    } else if (spotifyModalInput) {
-      spotifyModalInput.focus();
-      spotifyModalInput.select();
-    }
-  }
-
-  function openSpotifyModal(data) {
-    currentSpotifyData = data;
-    selectedSpotifyTrackIds.clear();
-    data.tracks.forEach((t) => selectedSpotifyTrackIds.add(t.id));
-
-    if (spotifyModalDetails) spotifyModalDetails.classList.remove('hidden');
-    spotifyTitle.textContent = data.title;
-    spotifySubtitle.textContent = `${data.subtitle ? data.subtitle + ' · ' : ''}${data.tracks.length} tracks`;
-    if (data.coverArt) {
-      spotifyCover.src = data.coverArt;
-      spotifyCover.style.display = 'block';
-    } else {
-      spotifyCover.style.display = 'none';
-    }
-    spotifyFolderInput.value = data.title.replace(/[/\\:?*"<>|]/g, '-');
-    spotifySelectAll.checked = true;
-
-    renderSpotifyTrackList();
-    spotifyModal.classList.remove('hidden');
-  }
-
-  function closeSpotifyModal() {
-    spotifyModal.classList.add('hidden');
-  }
-
-  function renderSpotifyTrackList() {
-    if (!currentSpotifyData) return;
-    spotifyTrackList.innerHTML = '';
-    currentSpotifyData.tracks.forEach((t) => {
-      const li = document.createElement('li');
-      const isChecked = selectedSpotifyTrackIds.has(t.id);
-      li.innerHTML = `
-        <input type="checkbox" ${isChecked ? 'checked' : ''} />
-        <span class="sIdx">${t.index}</span>
-        <span class="sTitle">${t.title}</span>
-        <span class="sArtist">${t.artists}</span>
-        <span class="sDur">${fmtTime(t.durationSec)}</span>
-      `;
-      const chk = li.querySelector('input');
-      chk.addEventListener('change', (e) => {
-        e.stopPropagation();
-        if (chk.checked) selectedSpotifyTrackIds.add(t.id);
-        else selectedSpotifyTrackIds.delete(t.id);
-        updateSpotifySelectionUI();
-      });
-      li.addEventListener('click', (e) => {
-        if (e.target !== chk) {
-          chk.checked = !chk.checked;
-          chk.dispatchEvent(new Event('change'));
-        }
-      });
-      spotifyTrackList.appendChild(li);
-    });
-    updateSpotifySelectionUI();
-  }
-
-  function updateSpotifySelectionUI() {
-    const count = selectedSpotifyTrackIds.size;
-    const total = currentSpotifyData ? currentSpotifyData.tracks.length : 0;
-    spotifySelectedCount.textContent = `${count} of ${total} selected`;
-    spotifySelectAll.checked = count === total && total > 0;
-    btnSpotifyStartDownload.disabled = count === 0;
-    btnSpotifyStartDownload.textContent = `⬇ Download Selected (${count})`;
-  }
-
-  spotifySelectAll.addEventListener('change', () => {
-    if (!currentSpotifyData) return;
-    if (spotifySelectAll.checked) {
-      currentSpotifyData.tracks.forEach((t) => selectedSpotifyTrackIds.add(t.id));
-    } else {
-      selectedSpotifyTrackIds.clear();
-    }
-    renderSpotifyTrackList();
-  });
-
-  if (btnCloseSpotifyModal) btnCloseSpotifyModal.addEventListener('click', closeSpotifyModal);
-  if (btnCancelSpotifyModal) btnCancelSpotifyModal.addEventListener('click', closeSpotifyModal);
-
-  async function fetchSpotifyData(url) {
-    if (!url) return;
-    spotifyStatus.className = 'youtubeStatus active';
-    spotifyStatus.textContent = 'Resolving Spotify playlist…';
-    btnSpotifyLoad.disabled = true;
-
-    try {
-      const data = await window.retro.spotifyResolve(url);
-      spotifyStatus.className = 'youtubeStatus';
-      spotifyStatus.textContent = `Loaded "${data.title}" (${data.tracks.length} tracks)`;
-      openSpotifyModal(data);
-    } catch (err) {
-      spotifyStatus.className = 'youtubeStatus error';
-      spotifyStatus.textContent = err.message || 'Failed to load Spotify link';
-      alert('Spotify error: ' + (err.message || 'Failed to resolve Spotify link'));
-    } finally {
-      btnSpotifyLoad.disabled = false;
-    }
-  }
-
-  btnSpotifyLoad.addEventListener('click', () => {
-    fetchSpotifyData(spotifyInput.value.trim());
-  });
-  spotifyInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      fetchSpotifyData(spotifyInput.value.trim());
-    }
-  });
-
-  btnSpotifyToggle.addEventListener('click', () => {
-    showSpotifyImporterModal(spotifyInput ? spotifyInput.value.trim() : '');
-  });
-
-  if (dashAddSpotify) {
-    dashAddSpotify.addEventListener('click', () => {
-      showSpotifyImporterModal();
-    });
-  }
-
-  if (btnSpotifyModalFetch) {
-    btnSpotifyModalFetch.addEventListener('click', () => {
-      if (spotifyModalInput) fetchSpotifyData(spotifyModalInput.value.trim());
-    });
-  }
-  if (spotifyModalInput) {
-    spotifyModalInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        fetchSpotifyData(spotifyModalInput.value.trim());
-      }
-    });
-  }
-
-  // Auto-detect Spotify URL pasted in YouTube input
+  // Auto-detect Spotify URL pasted in YouTube input: switch to Spotify row and download immediately
   youtubeInput.addEventListener('input', () => {
     const val = youtubeInput.value.trim();
     if (val.includes('spotify.com/') || val.startsWith('spotify:')) {
       youtubeInput.value = '';
-      showSpotifyImporterModal(val);
+      toggleSourceDropdown('spotify', true);
+      spotifyInput.value = val;
+      startSpotifyDownload();
     }
-  });
-
-  btnSpotifyStartDownload.addEventListener('click', async () => {
-    if (!currentSpotifyData) return;
-    const selectedTracks = currentSpotifyData.tracks.filter((t) => selectedSpotifyTrackIds.has(t.id));
-    if (selectedTracks.length === 0) return;
-
-    const folderName = (spotifyFolderInput.value || currentSpotifyData.title).trim();
-    closeSpotifyModal();
-
-    spotifyRow.classList.remove('hidden');
-    spotifyProgressWrap.classList.remove('hidden');
-    btnSpotifyCancel.classList.remove('hidden');
-    if (btnSpotifyOpenFolder) btnSpotifyOpenFolder.classList.remove('hidden');
-    btnSpotifyLoad.disabled = true;
-    spotifyProgressBar.style.width = '0%';
-    spotifyStatus.className = 'youtubeStatus active';
-    spotifyStatus.textContent = `Queued ${selectedTracks.length} songs into "${folderName}"…`;
-
-    // Immediately resolve and navigate Library to ~/Music/MacAMP/<folderName>
-    try {
-      const homes = await window.retro.homeDirs();
-      const macampBase = homes.macamp || (homes.music ? `${homes.music}/MacAMP` : null);
-      if (macampBase) {
-        currentSpotifyDestDir = `${macampBase}/${folderName}`;
-        if (typeof libNavigate === 'function') {
-          libNavigate(currentSpotifyDestDir).catch(() => {});
-        }
-      }
-    } catch {}
-
-    try {
-      const res = await window.retro.spotifyDownloadBatch({
-        tracks: selectedTracks,
-        folderName,
-        albumName: currentSpotifyData.title,
-        coverArtUrl: currentSpotifyData.coverArt,
-      });
-
-      spotifyStatus.className = 'youtubeStatus active';
-      spotifyStatus.textContent = res.cancelled
-        ? `Stopped. Downloaded ${res.downloadedCount} tracks into "${folderName}".`
-        : `Done! Downloaded ${res.downloadedCount} of ${res.total} tracks into "${folderName}".`;
-      spotifyProgressBar.style.width = '100%';
-
-      if (res.destDir) {
-        currentSpotifyDestDir = res.destDir;
-        if (typeof libNavigate === 'function') {
-          libNavigate(res.destDir);
-        }
-      }
-    } catch (err) {
-      spotifyStatus.className = 'youtubeStatus error';
-      spotifyStatus.textContent = err.message || 'Batch download failed';
-    } finally {
-      btnSpotifyCancel.classList.add('hidden');
-      btnSpotifyLoad.disabled = false;
-      setTimeout(() => {
-        spotifyProgressWrap.classList.add('hidden');
-        spotifyProgressBar.style.width = '0%';
-      }, 7000);
-    }
-  });
-
-  btnSpotifyCancel.addEventListener('click', async () => {
-    await window.retro.spotifyCancel();
-    spotifyStatus.className = 'youtubeStatus';
-    spotifyStatus.textContent = 'Cancelling download queue…';
   });
 
   if (window.retro.onSpotifyBatchProgress) {

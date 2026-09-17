@@ -238,6 +238,19 @@ input[type=range]::-webkit-slider-thumb {
 /* ---------- Playlist ---------- */
 .plSourceBar { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; flex: 0 0 auto; }
 .plSourceBar #jumpTo { flex: 1; }
+.plSourceBar .smallbtn.on,
+.plSourceBar .smallbtn.active {
+  background: var(--accent);
+  color: #06210f;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.plSourceBar .spotifyBtn.on,
+.plSourceBar .spotifyBtn.active {
+  background: #1db954 !important;
+  color: #000 !important;
+  border-color: #1ed760 !important;
+  box-shadow: 0 0 6px rgba(29, 185, 84, 0.4), inset 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
 .sourceDropdown {
   background: rgba(0, 0, 0, 0.35); border: 1px solid var(--panel-border);
   border-radius: 4px; padding: 4px 6px; margin-bottom: 4px;
