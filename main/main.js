@@ -370,6 +370,23 @@ ipcMain.handle('google:open-config', () => {
   shell.showItemInFolder(googleDrive.configPath());
 });
 
+ipcMain.handle('settings:get-music-dir', () => {
+  return youtubeDownloader.getMusicDir();
+});
+
+ipcMain.handle('settings:choose-music-dir', async () => {
+  const current = youtubeDownloader.getMusicDir();
+  const res = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select MacAMP Music Folder',
+    defaultPath: current,
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (res.canceled || !res.filePaths || !res.filePaths[0]) {
+    return current;
+  }
+  return youtubeDownloader.setMusicDir(res.filePaths[0]);
+});
+
 ipcMain.handle('youtube:status', () => youtubeDownloader.checkStatus());
 ipcMain.handle('youtube:download', async (_e, url) => {
   return youtubeDownloader.download(

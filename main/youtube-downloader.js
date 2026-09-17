@@ -21,15 +21,74 @@ function findBinary(name) {
   return null;
 }
 
-function getMusicDir() {
+function getSettingsPath() {
   const home = os.homedir();
+  const dir = path.join(home, 'Library', 'Application Support', 'MacAMP');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, 'settings.json');
+}
+
+function readSettings() {
+  try {
+    const p = getSettingsPath();
+    if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch {}
+  return {};
+}
+
+function writeSettings(s) {
+  try {
+    const p = getSettingsPath();
+    fs.writeFileSync(p, JSON.stringify(s, null, 2), 'utf8');
+  } catch {}
+}
+
+function detectDefaultMusicDir() {
+  const home = os.homedir();
+  // 1. Auto-detect Google Drive for Desktop in CloudStorage
+  const cloudStorage = path.join(home, 'Library', 'CloudStorage');
+  if (fs.existsSync(cloudStorage)) {
+    try {
+      const items = fs.readdirSync(cloudStorage);
+      for (const item of items) {
+        if (item.startsWith('GoogleDrive-')) {
+          const myDrive = path.join(cloudStorage, item, 'My Drive');
+          if (fs.existsSync(myDrive)) {
+            return path.join(myDrive, 'Music', 'MacAMP');
+          }
+        }
+      }
+    } catch {}
+  }
+  // 2. Default fallback to ~/Music/MacAMP
   const music = path.join(home, 'Music');
   const base = fs.existsSync(music) ? music : path.join(home, 'Downloads');
-  const dir = path.join(base, 'MacAMP');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  return path.join(base, 'MacAMP');
+}
+
+function getMusicDir() {
+  const settings = readSettings();
+  if (settings.musicDir && fs.existsSync(settings.musicDir)) {
+    return settings.musicDir;
   }
-  return dir;
+  const detected = detectDefaultMusicDir();
+  if (!fs.existsSync(detected)) {
+    fs.mkdirSync(detected, { recursive: true });
+  }
+  settings.musicDir = detected;
+  writeSettings(settings);
+  return detected;
+}
+
+function setMusicDir(newDir) {
+  if (!newDir) return getMusicDir();
+  if (!fs.existsSync(newDir)) {
+    fs.mkdirSync(newDir, { recursive: true });
+  }
+  const settings = readSettings();
+  settings.musicDir = newDir;
+  writeSettings(settings);
+  return newDir;
 }
 
 let activeChild = null;
@@ -405,4 +464,5 @@ module.exports = {
   downloadTrackBatch,
   cancelBatch,
   getMusicDir,
+  setMusicDir,
 };

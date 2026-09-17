@@ -15,6 +15,7 @@
   let keepPitch = true;
   let sleepTimeout = null;
   let miniVizMode = 'bars';
+  let refreshQuickLinks = null;
 
   // ---------- Dual audio elements (for crossfade) ----------
   const audioA = new Audio(); audioA.preload = 'auto';
@@ -345,58 +346,75 @@
   }
   jumpTo.addEventListener('input', applyJumpFilter);
 
-  // ---------- Google Drive ----------
+  // ---------- Google Drive & Music Storage ----------
   const gdriveStatus = el('gdriveStatus');
-  const btnGdriveOpenLib = el('btnGdriveOpenLib');
   const btnGdriveOpenFinder = el('btnGdriveOpenFinder');
-  const btnGdriveOpenMusic = el('btnGdriveOpenMusic');
-  let gdriveDesktopPath = null;
-  let gdriveAccount = null;
+  const btnGdriveOpenLib = el('btnGdriveOpenLib');
+  const btnGdriveChangeFolder = el('btnGdriveChangeFolder');
+  const gdrivePathDisplay = el('gdrivePathDisplay');
+  let currentMusicDir = null;
 
   async function refreshGdriveStatus() {
     try {
-      const clouds = await window.retro.cloudRoots();
-      const gdriveRoot = clouds.find((c) => c.id === 'gdrive-desktop');
-      if (gdriveRoot && gdriveRoot.path) {
-        gdriveDesktopPath = gdriveRoot.path;
-        const match = gdriveDesktopPath.match(/GoogleDrive-([^/]+)/);
-        gdriveAccount = match ? match[1] : 'Desktop';
+      if (window.retro.getMusicDir) {
+        currentMusicDir = await window.retro.getMusicDir();
+      } else {
+        const homes = await window.retro.homeDirs();
+        currentMusicDir = homes.macamp || (homes.music ? `${homes.music}/MacAMP` : null);
+      }
+
+      if (gdrivePathDisplay) {
+        gdrivePathDisplay.textContent = currentMusicDir ? `📁 ${currentMusicDir}` : 'No folder set';
+        gdrivePathDisplay.title = currentMusicDir || '';
+      }
+
+      if (currentMusicDir && currentMusicDir.includes('GoogleDrive-')) {
+        const match = currentMusicDir.match(/GoogleDrive-([^/]+)/);
+        const account = match ? match[1] : 'Desktop';
         gdriveStatus.className = 'gdriveStatus connected';
-        gdriveStatus.textContent = `Google Drive: Auto-Sync Active (${gdriveAccount})`;
+        gdriveStatus.textContent = `Google Drive: Active (${account})`;
+      } else if (currentMusicDir) {
+        gdriveStatus.className = 'gdriveStatus';
+        gdriveStatus.textContent = 'Music Storage: Custom Folder';
       } else {
         gdriveStatus.className = 'gdriveStatus';
-        gdriveStatus.textContent = 'Google Drive: Desktop folder not found';
+        gdriveStatus.textContent = 'Music Storage: Default';
       }
     } catch {
       gdriveStatus.className = 'gdriveStatus';
-      gdriveStatus.textContent = 'Google Drive: Ready';
+      gdriveStatus.textContent = 'Music Storage: Ready';
     }
   }
   refreshGdriveStatus();
 
-  if (btnGdriveOpenLib) {
-    btnGdriveOpenLib.addEventListener('click', () => {
-      if (gdriveDesktopPath && typeof libNavigate === 'function') {
-        libNavigate(gdriveDesktopPath);
-      }
-    });
-  }
-
   if (btnGdriveOpenFinder) {
     btnGdriveOpenFinder.addEventListener('click', () => {
-      if (gdriveDesktopPath) {
-        window.retro.openPath(gdriveDesktopPath);
+      if (currentMusicDir) {
+        window.retro.openPath(currentMusicDir);
       }
     });
   }
 
-  if (btnGdriveOpenMusic) {
-    btnGdriveOpenMusic.addEventListener('click', async () => {
-      try {
-        const homes = await window.retro.homeDirs();
-        const macampBase = homes.macamp || (homes.music ? `${homes.music}/MacAMP` : null);
-        if (macampBase) window.retro.openPath(macampBase);
-      } catch {}
+  if (btnGdriveOpenLib) {
+    btnGdriveOpenLib.addEventListener('click', () => {
+      if (currentMusicDir && typeof libNavigate === 'function') {
+        libWin.classList.remove('hidden');
+        btnLib.classList.add('on');
+        libNavigate(currentMusicDir);
+      }
+    });
+  }
+
+  if (btnGdriveChangeFolder) {
+    btnGdriveChangeFolder.addEventListener('click', async () => {
+      if (window.retro.chooseMusicDir) {
+        const newDir = await window.retro.chooseMusicDir();
+        if (newDir) {
+          await refreshGdriveStatus();
+          if (typeof refreshQuickLinks === 'function') await refreshQuickLinks();
+          if (typeof libNavigate === 'function') libNavigate(newDir);
+        }
+      }
     });
   }
 
@@ -1231,18 +1249,17 @@
     addFiles(await window.retro.scanAudioDir(libCurrentPath));
   });
 
-  (async () => {
+  refreshQuickLinks = async () => {
     const homes = await window.retro.homeDirs();
-    const labels = { music: '🎵 Music', desktop: '🖥 Desktop', downloads: '⬇ Downloads', home: '🏠 Home', macamp: '⚡ MacAMP' };
+    const labels = { macamp: '⚡ MacAMP Music', music: '🎵 Music', desktop: '🖥 Desktop', downloads: '⬇ Downloads', home: '🏠 Home' };
     libQuickLinks.innerHTML = '';
     for (const [key, dirPath] of Object.entries(homes)) {
       const btn = document.createElement('button');
-      btn.className = 'smallbtn';
+      btn.className = 'smallbtn' + (key === 'macamp' ? ' accent' : '');
       btn.textContent = labels[key] || key;
       btn.addEventListener('click', () => libNavigate(dirPath));
       libQuickLinks.appendChild(btn);
     }
-    libNavigate(homes.music || homes.home);
 
     const cloudBox = document.getElementById('cloudQuickLinks');
     if (cloudBox && window.retro.cloudRoots) {
@@ -1258,6 +1275,12 @@
         cloudBox.appendChild(btn);
       }
     }
+    return homes;
+  };
+
+  (async () => {
+    const homes = await refreshQuickLinks();
+    libNavigate(homes.macamp || homes.music || homes.home);
   })();
 
   // ---------- Drag & drop ----------

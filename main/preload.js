@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('retro', {
   openM3u: () => ipcRenderer.invoke('files:open-m3u'),
   readTagBytes: (filePath, maxBytes) => ipcRenderer.invoke('files:read-tag-bytes', filePath, maxBytes),
   pathForFile: (file) => webUtils.getPathForFile(file),
+  getMusicDir: () => ipcRenderer.invoke('settings:get-music-dir'),
+  chooseMusicDir: () => ipcRenderer.invoke('settings:choose-music-dir'),
 
   googleStatus: () => ipcRenderer.invoke('google:status'),
   googleConnect: () => ipcRenderer.invoke('google:connect'),
