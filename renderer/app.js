@@ -439,7 +439,7 @@
     const sources = [
       { name: 'youtube', btn: btnYoutubeToggle, row: youtubeRow, input: youtubeInput },
       { name: 'spotify', btn: btnSpotifyToggle, row: spotifyRow, input: spotifyInput },
-      { name: 'gdrive', btn: btnGdriveToggle, row: gdriveRow, input: gdriveFolderInput }
+      { name: 'gdrive', btn: btnGdriveToggle, row: gdriveRow, input: null }
     ];
 
     const target = sources.find((s) => s.name === targetName);
