@@ -227,10 +227,12 @@
 
       <div class="card">
         <div class="cardTitle">FILES</div>
-        <button id="dashAddFile" class="bigbtn accent">+ Add files</button>
-        <button id="dashAddDir" class="bigbtn accent">📁 Add folder</button>
-        <button id="dashAddYoutube" class="bigbtn">▶ Add from YouTube</button>
-        <button id="dashAddSpotify" class="bigbtn spotifyBtn">🟢 Import from Spotify</button>
+        <div class="dashBtnGrid">
+          <button id="dashAddFile" class="bigbtn accent">+ Add files</button>
+          <button id="dashAddDir" class="bigbtn accent">📁 Add folder</button>
+          <button id="dashAddYoutube" class="bigbtn">▶ YouTube DL</button>
+          <button id="dashAddSpotify" class="bigbtn spotifyBtn">🟢 Spotify DL</button>
+        </div>
         <div class="btnRow">
           <button id="dashSaveM3u" class="smallbtn">⬇ Save .m3u</button>
           <button id="dashLoadM3u" class="smallbtn">⬆ Load .m3u</button>
@@ -344,17 +346,23 @@
         <button id="btnCloseSpotifyModal" class="smallbtn modalCloseBtn">✕</button>
       </div>
       <div class="modalBody">
-        <div class="spotifyHeader">
-          <img id="spotifyCover" class="spotifyCoverImg" src="" alt="Cover" />
-          <div class="spotifyMeta">
-            <div id="spotifyTitle" class="spotifyTitleText">Playlist Name</div>
-            <div id="spotifySubtitle" class="spotifySubtitleText">Artists / Spotify</div>
-            <div class="spotifySaveTo">
-              <label>Save to folder:</label>
-              <input id="spotifyFolderInput" type="text" value="" />
+        <div class="spotifyUrlInputRow">
+          <input id="spotifyModalInput" type="text" placeholder="Paste Spotify playlist, album, or track URL…" />
+          <button id="btnSpotifyModalFetch" class="smallbtn accent spotifyAccent">⚡ Fetch Songs</button>
+        </div>
+
+        <div id="spotifyModalDetails" class="hidden">
+          <div class="spotifyHeader">
+            <img id="spotifyCover" class="spotifyCoverImg" src="" alt="Cover" />
+            <div class="spotifyMeta">
+              <div id="spotifyTitle" class="spotifyTitleText">Playlist Name</div>
+              <div id="spotifySubtitle" class="spotifySubtitleText">Artists / Spotify</div>
+              <div class="spotifySaveTo">
+                <label>Save to folder:</label>
+                <input id="spotifyFolderInput" type="text" value="" />
+              </div>
             </div>
           </div>
-        </div>
 
         <div class="spotifyTrackActionRow">
           <label class="checkRow"><input type="checkbox" id="spotifySelectAll" checked /> Select All</label>
@@ -364,6 +372,7 @@
 
         <div class="spotifyTrackListWrap">
           <ul id="spotifyTrackList"></ul>
+        </div>
         </div>
 
         <div class="modalFooter">

@@ -536,6 +536,9 @@
   const spotifyModal = el('spotifyModal');
   const btnCloseSpotifyModal = el('btnCloseSpotifyModal');
   const btnCancelSpotifyModal = el('btnCancelSpotifyModal');
+  const spotifyModalInput = el('spotifyModalInput');
+  const btnSpotifyModalFetch = el('btnSpotifyModalFetch');
+  const spotifyModalDetails = el('spotifyModalDetails');
   const spotifyCover = el('spotifyCover');
   const spotifyTitle = el('spotifyTitle');
   const spotifySubtitle = el('spotifySubtitle');
@@ -557,11 +560,23 @@
     });
   }
 
+  function showSpotifyImporterModal(prefillUrl = '') {
+    spotifyModal.classList.remove('hidden');
+    if (prefillUrl) {
+      if (spotifyModalInput) spotifyModalInput.value = prefillUrl;
+      fetchSpotifyData(prefillUrl);
+    } else if (spotifyModalInput) {
+      spotifyModalInput.focus();
+      spotifyModalInput.select();
+    }
+  }
+
   function openSpotifyModal(data) {
     currentSpotifyData = data;
     selectedSpotifyTrackIds.clear();
     data.tracks.forEach((t) => selectedSpotifyTrackIds.add(t.id));
 
+    if (spotifyModalDetails) spotifyModalDetails.classList.remove('hidden');
     spotifyTitle.textContent = data.title;
     spotifySubtitle.textContent = `${data.subtitle ? data.subtitle + ' · ' : ''}${data.tracks.length} tracks`;
     if (data.coverArt) {
@@ -665,20 +680,26 @@
   });
 
   btnSpotifyToggle.addEventListener('click', () => {
-    const isHidden = spotifyRow.classList.contains('hidden');
-    spotifyRow.classList.toggle('hidden', !isHidden);
-    if (isHidden) {
-      spotifyInput.focus();
-    }
+    showSpotifyImporterModal(spotifyInput ? spotifyInput.value.trim() : '');
   });
 
   if (dashAddSpotify) {
     dashAddSpotify.addEventListener('click', () => {
-      plWin.classList.remove('hidden');
-      btnPL.classList.add('on');
-      spotifyRow.classList.remove('hidden');
-      spotifyInput.focus();
-      spotifyInput.select();
+      showSpotifyImporterModal();
+    });
+  }
+
+  if (btnSpotifyModalFetch) {
+    btnSpotifyModalFetch.addEventListener('click', () => {
+      if (spotifyModalInput) fetchSpotifyData(spotifyModalInput.value.trim());
+    });
+  }
+  if (spotifyModalInput) {
+    spotifyModalInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        fetchSpotifyData(spotifyModalInput.value.trim());
+      }
     });
   }
 
@@ -686,10 +707,8 @@
   youtubeInput.addEventListener('input', () => {
     const val = youtubeInput.value.trim();
     if (val.includes('spotify.com/') || val.startsWith('spotify:')) {
-      spotifyRow.classList.remove('hidden');
-      spotifyInput.value = val;
       youtubeInput.value = '';
-      fetchSpotifyData(val);
+      showSpotifyImporterModal(val);
     }
   });
 
