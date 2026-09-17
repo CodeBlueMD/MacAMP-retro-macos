@@ -1,7 +1,7 @@
 {
   "name": "macamp",
   "productName": "MacAMP",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Retro Winamp-style music player for macOS with local + cloud folders.",
   "main": "main/main.js",
   "author": "MacAMP",

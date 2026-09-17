@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CodeBlueMD/MacAMP-retro-macos/releases/latest/download/MacAMP-1.1.0-universal.dmg">
-    <img src="https://img.shields.io/badge/Download-MacAMP%20for%20macOS%20(.dmg)-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Download MacAMP for macOS" />
+  <a href="https://github.com/CodeBlueMD/MacAMP-retro-macos/releases/latest/download/MacAMP-1.2.0-universal.dmg">
+    <img src="https://img.shields.io/badge/Download-MacAMP%20v1.2.0%20for%20macOS%20(.dmg)-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Download MacAMP for macOS" />
   </a>
 </p>
 
@@ -23,9 +23,9 @@
 
 You don't need Terminal or developer tools to use MacAMP:
 
-1. **Download**: Click [**MacAMP-1.1.0-universal.dmg**](https://github.com/CodeBlueMD/MacAMP-retro-macos/releases/latest/download/MacAMP-1.1.0-universal.dmg) *(Universal binary: runs natively on Apple Silicon M1/M2/M3/M4 & Intel Macs)*.
+1. **Download**: Click [**MacAMP-1.2.0-universal.dmg**](https://github.com/CodeBlueMD/MacAMP-retro-macos/releases/latest/download/MacAMP-1.2.0-universal.dmg) *(Universal binary: runs natively on Apple Silicon M1/M2/M3/M4 & Intel Macs)*.
 2. **Install**: Open the `.dmg` and drag **MacAMP** into your **Applications** folder.
-3. **First launch**: Because MacAMP is a free open-source project without a paid Apple Developer certificate, macOS Gatekeeper may show a security notice the first time:
+3. **First launch**: Because MacAMP is an open-source project:
    - **Right-click** (or Control-click) **MacAMP** in Applications → click **Open** → click **Open**.
    - After this one-time confirmation, it opens normally like any other Mac app.
 
@@ -34,10 +34,20 @@ You don't need Terminal or developer tools to use MacAMP:
 ## Features
 
 - **Unified macOS Experience**: Native macOS traffic light controls (close, minimize, zoom) with a sleek integrated top drag bar.
+- **Spotify Album & Playlist Importer**:
+  - Paste any Spotify playlist, album, or track URL directly into the **Playlist Editor** (or via **🟢 Spotify**).
+  - Automatically resolves metadata and high-resolution album artwork.
+  - Downloads tracks into an organized subfolder with batch progress tracking and instant cancellation controls.
+  - **Stream-as-You-Download**: Plays track 1 as soon as it lands while the rest of the playlist downloads smoothly in the background.
 - **YouTube Audio & Playlist Downloader**:
   - Paste any YouTube video or playlist link directly into the **Playlist Editor** (or via **▶ YouTube DL**).
-  - High-quality audio extraction (`.mp3`) with full metadata, saved to `~/Music/MacAMP/`.
-  - **Stream-as-You-Download**: In multi-song playlists, track 1 starts playing immediately while subsequent tracks continue downloading in the background.
+  - High-quality audio extraction (`.mp3`) with full ID3 metadata and album art.
+  - Concurrent background downloading with real-time progress bar.
+- **Google Drive Cloud Sync & Music Folder Picker**:
+  - Automatically detects **Google Drive for Desktop** and defaults your music save location to `Google Drive / My Drive / Music / MacAMP`.
+  - Automatically accessible from your phone and all devices under `My Drive` without needing manual file transfers or device backups.
+  - Flexible **Folder Picker** (`⚙ Change Folder`) to choose any custom local or external drive.
+  - Quick **Finder** (`📂 Finder`) and **Library** (`🎵 Library`) one-click navigation buttons.
 - **10-Band Equalizer & Preamp**:
   - Real Web Audio BiquadFilter parametric EQ covering 60 Hz to 16 kHz plus preamp gain.
   - Bold, prominent slider travel aligned with `+12`, `0`, and `-12` dB indicators.
@@ -49,8 +59,8 @@ You don't need Terminal or developer tools to use MacAMP:
   - Fast live search filter with Jump-to (`J`).
   - Sort, remove, clear, and save/load `.m3u` playlists.
 - **Library Browser**:
-  - Integrated full-featured file browser for local audio (`~/Music`, `~/Downloads`, `~/Desktop`, `~/Music/MacAMP`).
-  - Automatic detection of synced cloud folders (iCloud Drive, Dropbox, OneDrive, Google Drive for Desktop).
+  - Integrated full-featured file browser for local audio (`⚡ MacAMP Music`, `~/Music`, `~/Downloads`, `~/Desktop`, `~/Home`).
+  - Automatic detection of synced cloud folders (Google Drive for Desktop, iCloud Drive, Dropbox, OneDrive).
   - Google Drive API integration for streaming files directly from Drive folders.
 - **Retro Player & LCD Display**:
   - Real-time animated LCD track marquee and time display.
@@ -87,7 +97,7 @@ If you prefer building from source:
    ```
 5. Package as a macOS app or DMG:
    ```sh
-   npm run dist        # Builds release/MacAMP-1.1.0-universal.dmg
+   npm run dist        # Builds release/MacAMP-1.2.0-universal.dmg
    npm run dist:dir    # Builds unpackaged .app in release/mac-arm64/
    ```
 
