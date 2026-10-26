@@ -24,17 +24,10 @@ contextBridge.exposeInMainWorld('retro', {
   saveM3u: (paths) => ipcRenderer.invoke('files:save-m3u', paths),
   openM3u: () => ipcRenderer.invoke('files:open-m3u'),
   readTagBytes: (filePath, maxBytes) => ipcRenderer.invoke('files:read-tag-bytes', filePath, maxBytes),
+  findFolderArt: (filePath) => ipcRenderer.invoke('fs:find-folder-art', filePath),
   pathForFile: (file) => webUtils.getPathForFile(file),
   getMusicDir: () => ipcRenderer.invoke('settings:get-music-dir'),
   chooseMusicDir: () => ipcRenderer.invoke('settings:choose-music-dir'),
-
-  googleStatus: () => ipcRenderer.invoke('google:status'),
-  googleConnect: () => ipcRenderer.invoke('google:connect'),
-  googleDisconnect: () => ipcRenderer.invoke('google:disconnect'),
-  googleListFolder: (folderIdOrUrl) => ipcRenderer.invoke('google:list-folder', folderIdOrUrl),
-  googleGetTrack: (fileId) => ipcRenderer.invoke('google:get-track', fileId),
-  googleOpenConfig: () => ipcRenderer.invoke('google:open-config'),
-  googleSyncMusic: (folder) => ipcRenderer.invoke('gdrive:sync-music', folder),
 
   youtubeStatus: () => ipcRenderer.invoke('youtube:status'),
   youtubeDownload: (url) => ipcRenderer.invoke('youtube:download', url),

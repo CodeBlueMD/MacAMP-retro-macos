@@ -2,7 +2,6 @@ const { app, BrowserWindow, dialog, ipcMain, Menu, shell, screen } = require('el
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
-const googleDrive = require('./google-drive');
 const youtubeDownloader = require('./youtube-downloader');
 const spotifyResolver = require('./spotify-resolver');
 
@@ -249,7 +248,16 @@ ipcMain.handle('fs:move-item', (_e, sourcePath, destDir) => {
         counter++;
       }
     }
-    fs.renameSync(sourcePath, destPath);
+    try {
+      fs.renameSync(sourcePath, destPath);
+    } catch (renameErr) {
+      if (renameErr.code === 'EXDEV') {
+        fs.cpSync(sourcePath, destPath, { recursive: true });
+        fs.rmSync(sourcePath, { recursive: true, force: true });
+      } else {
+        throw renameErr;
+      }
+    }
     return { success: true, oldPath: sourcePath, newPath: destPath };
   } catch (err) {
     return { error: err.message };
@@ -261,54 +269,6 @@ ipcMain.handle('fs:trash-item', async (_e, targetPath) => {
     if (!targetPath) return false;
     await shell.trashItem(targetPath);
     return { success: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
-ipcMain.handle('gdrive:sync-music', async (_e, folderName) => {
-  try {
-    const gdriveRoots = listCloudStorageChildren('GoogleDrive-');
-    if (gdriveRoots.length === 0) {
-      throw new Error('Google Drive desktop folder not found. Please ensure Google Drive app is running.');
-    }
-    const gdriveRoot = gdriveRoots[0];
-    const accountName = path.basename(gdriveRoot).replace(/^GoogleDrive-/, '');
-    const myDrive = existing(path.join(gdriveRoot, 'My Drive')) || gdriveRoot;
-
-    const targetDir = path.join(myDrive, 'Music', 'MacAMP');
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-    }
-
-    const macampMusic = youtubeDownloader.getMusicDir();
-    if (folderName) {
-      const srcFolder = path.join(macampMusic, folderName);
-      const destFolder = path.join(targetDir, folderName);
-      if (fs.existsSync(srcFolder)) {
-        fs.cpSync(srcFolder, destFolder, { recursive: true });
-      }
-    } else {
-      if (fs.existsSync(macampMusic)) {
-        fs.cpSync(macampMusic, targetDir, { recursive: true });
-      }
-    }
-
-    // Count synced tracks
-    let count = 0;
-    function countAudioFiles(dir) {
-      try {
-        for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
-          if (item.name.startsWith('.')) continue;
-          const full = path.join(dir, item.name);
-          if (item.isDirectory()) countAudioFiles(full);
-          else if (AUDIO_EXTS.has(path.extname(item.name).toLowerCase())) count++;
-        }
-      } catch {}
-    }
-    countAudioFiles(targetDir);
-
-    return { success: true, count, targetDir, account: accountName };
   } catch (err) {
     return { error: err.message };
   }
@@ -360,14 +320,19 @@ ipcMain.handle('files:read-tag-bytes', async (_e, filePath, maxBytes) => {
   }
 });
 
-ipcMain.handle('google:status', () => googleDrive.status());
-ipcMain.handle('google:connect', () => googleDrive.connect());
-ipcMain.handle('google:disconnect', () => { googleDrive.disconnect(); return googleDrive.status(); });
-ipcMain.handle('google:list-folder', (_e, folderIdOrUrl) => googleDrive.listAudioInFolder(folderIdOrUrl));
-ipcMain.handle('google:get-track', (_e, fileId) => googleDrive.getFileBytesBase64(fileId));
-ipcMain.handle('google:open-config', () => {
-  googleDrive.ensureConfigTemplate();
-  shell.showItemInFolder(googleDrive.configPath());
+ipcMain.handle('fs:find-folder-art', (_e, filePath) => {
+  try {
+    if (!filePath) return null;
+    const dir = path.dirname(filePath);
+    const candidates = ['cover.jpg', 'folder.jpg', 'cover.png', 'folder.png', 'artwork.jpg', 'artwork.png'];
+    for (const name of candidates) {
+      const candidatePath = path.join(dir, name);
+      if (fs.existsSync(candidatePath)) return candidatePath;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 });
 
 ipcMain.handle('settings:get-music-dir', () => {

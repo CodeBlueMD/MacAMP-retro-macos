@@ -74,6 +74,12 @@
     return `${m}:${String(s).padStart(2, '0')}`;
   }
   function baseName(p) { const parts = p.split(/[\\/]/); return parts[parts.length - 1]; }
+  function filePathToUrl(filePath) {
+    return 'file://' + filePath.split('/').map(encodeURIComponent).join('/');
+  }
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
 
   // ---------- Elements ----------
   const trackName = el('trackName');
@@ -127,7 +133,19 @@
   document.querySelectorAll('.swatch').forEach((s) => s.addEventListener('click', () => applyTheme(s.dataset.theme)));
   applyTheme(localStorage.getItem('macamp.theme') || 'cyber');
 
-  // ---------- Playlist rendering ----------
+  // ---------- Playlist rendering & persistence ----------
+  function savePlaylistState() {
+    try {
+      const serializable = playlist.filter((t) => t.source === 'local').map((t) => ({
+        source: 'local',
+        path: t.path,
+        name: t.name,
+        duration: t.duration || 0,
+      }));
+      localStorage.setItem('macamp.playlist', JSON.stringify(serializable));
+    } catch {}
+  }
+
   function renderPlaylist() {
     plList.innerHTML = '';
     const dropHint = el('dropHint');
@@ -139,7 +157,7 @@
       if (i === currentIndex) li.classList.add('playing');
       if (i === selectedIndex) li.classList.add('selected');
       const dur = track.duration ? fmtTime(track.duration) : '';
-      li.innerHTML = `<span class="idx">${i + 1}.</span><span class="name">${track.name}</span><span class="dur">${dur}</span><span class="rm" title="Remove track">✕</span>`;
+      li.innerHTML = `<span class="idx">${i + 1}.</span><span class="name">${escapeHtml(track.name)}</span><span class="dur">${dur}</span><span class="rm" title="Remove track">✕</span>`;
       li.addEventListener('click', () => {
         selectedIndex = i;
         plList.querySelectorAll('li').forEach((item, idx) => item.classList.toggle('selected', idx === i));
@@ -152,6 +170,7 @@
     });
     updateFooter();
     applyJumpFilter();
+    savePlaylistState();
   }
 
   function updateFooter() {
@@ -163,7 +182,7 @@
     if (track.source !== 'local') return;
     const probe = new Audio();
     probe.preload = 'metadata';
-    probe.src = 'file://' + encodeURI(track.path).replace(/#/g, '%23');
+    probe.src = filePathToUrl(track.path);
     probe.addEventListener('loadedmetadata', () => {
       track.duration = probe.duration;
       updateFooter();
@@ -180,7 +199,7 @@
     renderPlaylist();
   }
 
-  function addFiles(paths) {
+  function addFiles(paths, autoPlay = true) {
     let added = false;
     for (const p of paths) {
       if (!p) continue;
@@ -190,7 +209,7 @@
       added = true;
     }
     if (added) renderPlaylist();
-    if (currentIndex === -1 && playlist.length > 0) loadAndPlay(0);
+    if (autoPlay && currentIndex === -1 && playlist.length > 0) loadAndPlay(0);
   }
 
   function addDriveFiles(files) {
@@ -235,7 +254,7 @@
       }
     } else {
       if (blobUrls[targetSlot]) { URL.revokeObjectURL(blobUrls[targetSlot]); blobUrls[targetSlot] = null; }
-      targetAudio.src = 'file://' + encodeURI(track.path).replace(/#/g, '%23');
+      targetAudio.src = filePathToUrl(track.path);
     }
     if (token !== loadToken) return;
 
@@ -718,8 +737,21 @@
   }
 
   // ---------- Shuffle / repeat / EQ / PL toggles ----------
-  btnShuffle.addEventListener('click', () => { shuffleOn = !shuffleOn; btnShuffle.classList.toggle('on', shuffleOn); });
-  btnRepeat.addEventListener('click', () => { repeatOn = !repeatOn; btnRepeat.classList.toggle('on', repeatOn); });
+  shuffleOn = localStorage.getItem('macamp.shuffle') === 'true';
+  repeatOn = localStorage.getItem('macamp.repeat') === 'true';
+  btnShuffle.classList.toggle('on', shuffleOn);
+  btnRepeat.classList.toggle('on', repeatOn);
+
+  btnShuffle.addEventListener('click', () => {
+    shuffleOn = !shuffleOn;
+    btnShuffle.classList.toggle('on', shuffleOn);
+    localStorage.setItem('macamp.shuffle', String(shuffleOn));
+  });
+  btnRepeat.addEventListener('click', () => {
+    repeatOn = !repeatOn;
+    btnRepeat.classList.toggle('on', repeatOn);
+    localStorage.setItem('macamp.repeat', String(repeatOn));
+  });
   btnEQ.addEventListener('click', () => {
     const willShow = eqWin.classList.contains('hidden');
     eqWin.classList.toggle('hidden', !willShow); btnEQ.classList.toggle('on', willShow);
@@ -746,7 +778,12 @@
   }, 250);
 
   // ---------- Volume / balance ----------
-  volume.addEventListener('input', () => { slotAudios.forEach((a) => { a.volume = volume.value / 100; }); });
+  const savedVol = localStorage.getItem('macamp.volume');
+  if (savedVol !== null) volume.value = savedVol;
+  volume.addEventListener('input', () => {
+    slotAudios.forEach((a) => { a.volume = volume.value / 100; });
+    localStorage.setItem('macamp.volume', volume.value);
+  });
   slotAudios.forEach((a) => { a.volume = volume.value / 100; });
   balance.addEventListener('input', () => { panner.pan.value = balance.value / 100; });
 
@@ -779,7 +816,15 @@
   // ---------- Equalizer ----------
   const preampSlider = el('preamp');
   const bandSliders = Array.from(document.querySelectorAll('.eqBandSlider'));
+  function saveEqState() {
+    try {
+      const vals = [parseFloat(preampSlider.value), ...bandSliders.map((s) => parseFloat(s.value))];
+      localStorage.setItem('macamp.eqValues', JSON.stringify(vals));
+      localStorage.setItem('macamp.eqOn', String(eqEnabled));
+    } catch {}
+  }
   function applyEqFromSliders() {
+    saveEqState();
     if (!eqEnabled) return;
     preampGain.gain.value = dbToGain(parseFloat(preampSlider.value));
     bandSliders.forEach((s, i) => { eqFilters[i].gain.value = parseFloat(s.value); });
@@ -790,9 +835,12 @@
 
   const eqOnToggle = el('eqOnToggle');
   const eqAutoToggle = el('eqAutoToggle');
-  eqOnToggle.classList.add('on');
+  const savedEqOn = localStorage.getItem('macamp.eqOn');
+  if (savedEqOn !== null) eqEnabled = savedEqOn === 'true';
+  eqOnToggle.classList.toggle('on', eqEnabled);
   eqOnToggle.addEventListener('click', () => {
     eqEnabled = !eqEnabled; eqOnToggle.classList.toggle('on', eqEnabled);
+    saveEqState();
     if (eqEnabled) applyEqFromSliders(); else bypassEq();
   });
   eqAutoToggle.addEventListener('click', () => eqAutoToggle.classList.toggle('on'));
@@ -808,6 +856,7 @@
   };
   el('eqPresets').addEventListener('change', (e) => {
     const vals = eqPresets[e.target.value] || eqPresets.flat;
+    localStorage.setItem('macamp.eqPreset', e.target.value);
     preampSlider.value = vals[0];
     preampSlider.dispatchEvent(new Event('input'));
     bandSliders.forEach((s, i) => {
@@ -816,6 +865,18 @@
     });
     applyEqFromSliders();
   });
+
+  // Restore saved EQ values
+  try {
+    const savedPreset = localStorage.getItem('macamp.eqPreset');
+    if (savedPreset && el('eqPresets')) el('eqPresets').value = savedPreset;
+    const savedVals = JSON.parse(localStorage.getItem('macamp.eqValues') || 'null');
+    if (Array.isArray(savedVals) && savedVals.length === 11) {
+      preampSlider.value = savedVals[0];
+      bandSliders.forEach((s, i) => { s.value = savedVals[i + 1]; });
+    }
+    if (eqEnabled) applyEqFromSliders(); else bypassEq();
+  } catch {}
 
   // ---------- Visualizer ----------
   const freqData = new Uint8Array(analyser.frequencyBinCount);
@@ -896,30 +957,78 @@
   el('btnExitViz').addEventListener('click', () => { vizOverlay.classList.add('hidden'); fullVizRunning = false; });
   el('vizSensitivity').addEventListener('input', (e) => { el('vizSensVal').textContent = e.target.value; });
 
-  // ---------- Shortcuts overlay ----------
+  // ---------- Shortcuts overlay & Retro Prompt Modal ----------
   const shortcutsOverlay = el('shortcutsOverlay');
   el('btnShortcuts').addEventListener('click', () => shortcutsOverlay.classList.remove('hidden'));
   el('btnCloseShortcuts').addEventListener('click', () => shortcutsOverlay.classList.add('hidden'));
 
+  const promptOverlay = el('promptOverlay');
+  const promptTitle = el('promptTitle');
+  const promptInput = el('promptInput');
+  const btnPromptOk = el('btnPromptOk');
+  const btnPromptCancel = el('btnPromptCancel');
+  let promptResolve = null;
+
+  function closeRetroPrompt(val) {
+    if (promptOverlay) promptOverlay.classList.add('hidden');
+    if (promptResolve) {
+      const r = promptResolve;
+      promptResolve = null;
+      r(val);
+    }
+  }
+
+  function showRetroPrompt(titleText, defaultVal = '') {
+    return new Promise((resolve) => {
+      if (!promptOverlay) { resolve(null); return; }
+      promptResolve = resolve;
+      promptTitle.textContent = titleText;
+      promptInput.value = defaultVal;
+      promptOverlay.classList.remove('hidden');
+      setTimeout(() => {
+        promptInput.focus();
+        promptInput.select();
+      }, 20);
+    });
+  }
+
+  if (btnPromptOk) btnPromptOk.addEventListener('click', () => closeRetroPrompt(promptInput.value));
+  if (btnPromptCancel) btnPromptCancel.addEventListener('click', () => closeRetroPrompt(null));
+  if (promptInput) {
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); closeRetroPrompt(promptInput.value); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeRetroPrompt(null); }
+    });
+  }
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      if (promptOverlay && !promptOverlay.classList.contains('hidden')) { closeRetroPrompt(null); return; }
       if (!vizOverlay.classList.contains('hidden')) { vizOverlay.classList.add('hidden'); fullVizRunning = false; }
       if (!shortcutsOverlay.classList.contains('hidden')) shortcutsOverlay.classList.add('hidden');
       return;
     }
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
     switch (e.key) {
       case ' ': e.preventDefault(); activeAudio().paused ? play() : pause(); break;
       case 'ArrowLeft': activeAudio().currentTime = Math.max(0, activeAudio().currentTime - 5); break;
       case 'ArrowRight': activeAudio().currentTime += 5; break;
-      case 'ArrowUp': volume.value = Math.min(100, +volume.value + 5); volume.dispatchEvent(new Event('input')); break;
-      case 'ArrowDown': volume.value = Math.max(0, +volume.value - 5); volume.dispatchEvent(new Event('input')); break;
-      case 'n': case 'N': next(); break;
-      case 'p': case 'P': prev(); break;
+      case 'ArrowUp': e.preventDefault(); volume.value = Math.min(100, +volume.value + 5); volume.dispatchEvent(new Event('input')); break;
+      case 'ArrowDown': e.preventDefault(); volume.value = Math.max(0, +volume.value - 5); volume.dispatchEvent(new Event('input')); break;
+      case 'n': case 'N': case 'b': case 'B': next(); break;
+      case 'p': case 'P': case 'z': case 'Z': prev(); break;
+      case 'x': case 'X': play(); break;
+      case 'c': case 'C': activeAudio().paused ? play() : pause(); break;
+      case 'v': case 'V': stop(); break;
+      case 'l': case 'L': pickFiles(); break;
       case 's': case 'S': btnShuffle.click(); break;
       case 'r': case 'R': btnRepeat.click(); break;
       case 'j': case 'J': e.preventDefault(); jumpTo.focus(); break;
+      case 'Delete': case 'Backspace':
+        if (selectedIndex !== -1) { e.preventDefault(); removeTrack(selectedIndex); }
+        break;
     }
   });
 
@@ -972,20 +1081,40 @@
 
   async function tryLoadAlbumArt(track) {
     if (!el('albumArtToggle').checked) { hideAlbumArt(); return; }
-    if (track.source !== 'local' || !track.path.toLowerCase().endsWith('.mp3')) { hideAlbumArt(); return; }
+    if (!track || track.source !== 'local') { hideAlbumArt(); return; }
     try {
-      const base64 = await window.retro.readTagBytes(track.path, 3 * 1024 * 1024);
-      if (!base64) { hideAlbumArt(); return; }
-      const bytes = base64ToBytes(base64);
-      const apic = extractApic(bytes);
-      if (!apic) { hideAlbumArt(); return; }
-      let binary = ''; const CHUNK = 0x8000;
-      for (let i = 0; i < apic.imgBytes.length; i += CHUNK) binary += String.fromCharCode(...apic.imgBytes.subarray(i, i + CHUNK));
-      albumArt.src = `data:${apic.mime};base64,${btoa(binary)}`;
-      albumArt.classList.add('show');
+      if (track.path.toLowerCase().endsWith('.mp3')) {
+        const base64 = await window.retro.readTagBytes(track.path, 3 * 1024 * 1024);
+        if (base64) {
+          const bytes = base64ToBytes(base64);
+          const apic = extractApic(bytes);
+          if (apic) {
+            let binary = ''; const CHUNK = 0x8000;
+            for (let i = 0; i < apic.imgBytes.length; i += CHUNK) binary += String.fromCharCode(...apic.imgBytes.subarray(i, i + CHUNK));
+            albumArt.src = `data:${apic.mime};base64,${btoa(binary)}`;
+            albumArt.classList.add('show');
+            return;
+          }
+        }
+      }
+      // Fallback: check for cover.jpg / folder.jpg in the same directory
+      if (window.retro.findFolderArt) {
+        const folderArtPath = await window.retro.findFolderArt(track.path);
+        if (folderArtPath) {
+          albumArt.src = filePathToUrl(folderArtPath);
+          albumArt.classList.add('show');
+          return;
+        }
+      }
+      hideAlbumArt();
     } catch { hideAlbumArt(); }
   }
-  el('albumArtToggle').addEventListener('change', () => { if (currentIndex !== -1) tryLoadAlbumArt(playlist[currentIndex]); else hideAlbumArt(); });
+  const savedAlbumArt = localStorage.getItem('macamp.albumArt');
+  if (savedAlbumArt !== null) el('albumArtToggle').checked = savedAlbumArt === 'true';
+  el('albumArtToggle').addEventListener('change', (e) => {
+    localStorage.setItem('macamp.albumArt', String(e.target.checked));
+    if (currentIndex !== -1) tryLoadAlbumArt(playlist[currentIndex]); else hideAlbumArt();
+  });
 
   // ---------- Library browser (navigate your own folders to pick audio) ----------
   const libList = el('libList');
@@ -1028,7 +1157,7 @@
 
         if (action === 'rename') {
           const curName = window.retro.basename(target.path);
-          const newName = prompt(`Rename ${target.type === 'dir' ? 'folder' : 'file'}:`, curName);
+          const newName = await showRetroPrompt(`RENAME ${target.type === 'dir' ? 'FOLDER' : 'FILE'}`, curName);
           if (newName && newName.trim() && newName.trim() !== curName) {
             const res = await window.retro.renameItem(target.path, newName.trim());
             if (res && res.error) {
@@ -1073,7 +1202,7 @@
     for (const dirPath of libEntries.dirs) {
       const li = document.createElement('li');
       li.className = 'dir';
-      li.innerHTML = `<span>📁</span><span class="name">${window.retro.basename(dirPath)}</span>`;
+      li.innerHTML = `<span>📁</span><span class="name">${escapeHtml(window.retro.basename(dirPath))}</span>`;
       li.addEventListener('click', () => libNavigate(dirPath));
 
       // Right-click context menu
@@ -1116,7 +1245,7 @@
       const li = document.createElement('li');
       li.className = 'file' + (librarySelected.has(filePath) ? ' selected' : '');
       li.draggable = true;
-      li.innerHTML = `<span>🎵</span><span class="name">${window.retro.basename(filePath)}</span>`;
+      li.innerHTML = `<span>🎵</span><span class="name">${escapeHtml(window.retro.basename(filePath))}</span>`;
 
       li.addEventListener('click', () => {
         if (librarySelected.has(filePath)) {
@@ -1190,7 +1319,7 @@
   if (libNewFolderBtn) {
     libNewFolderBtn.addEventListener('click', async () => {
       if (!libCurrentPath) return;
-      const folderName = prompt(`Create new folder in ${window.retro.basename(libCurrentPath)}:`, 'New Folder');
+      const folderName = await showRetroPrompt(`NEW FOLDER IN ${window.retro.basename(libCurrentPath).toUpperCase()}`, 'New Folder');
       if (folderName && folderName.trim()) {
         const res = await window.retro.createDir(libCurrentPath, folderName.trim());
         if (res && res.error) {
@@ -1291,6 +1420,20 @@
     const paths = files.map((f) => window.retro.pathForFile(f)).filter(Boolean);
     if (paths.length) addFiles(paths);
   });
+
+  // Restore saved playlist from previous session
+  try {
+    const savedPl = JSON.parse(localStorage.getItem('macamp.playlist') || 'null');
+    if (Array.isArray(savedPl) && savedPl.length > 0) {
+      for (const item of savedPl) {
+        if (item && item.path) {
+          const t = { source: 'local', path: item.path, name: item.name || baseName(item.path), duration: item.duration || 0 };
+          playlist.push(t);
+          if (!t.duration) probeDuration(t);
+        }
+      }
+    }
+  } catch {}
 
   renderPlaylist();
 })();

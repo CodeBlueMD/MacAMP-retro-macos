@@ -680,6 +680,13 @@ input[type=range].eqSlider:focus { outline: none; }
 #vizFull { width: 100%; height: 100%; }
 #btnExitViz { position: absolute; top: 16px; right: 16px; }
 
-#shortcutsOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; display: flex; align-items: center; justify-content: center; }
-#shortcutsCard { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 20px; width: 320px; }
-#shortcutsCard ul { list-style: none; margin: 10px 0; padding: 0; font-size: 11px; color: var(--text); line-height: 2; }
+#shortcutsOverlay, #promptOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 60; display: flex; align-items: center; justify-content: center; }
+#shortcutsCard, #promptCard { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 18px 20px; width: 340px; box-shadow: 0 8px 28px rgba(0,0,0,0.8); }
+#shortcutsCard ul { list-style: none; margin: 10px 0; padding: 0; font-size: 11px; color: var(--text); line-height: 1.85; }
+#promptInput {
+  width: 100%; font: 12px 'Courier New', monospace; background: var(--input-bg);
+  border: 1px solid var(--panel-border); color: var(--text); padding: 6px 8px;
+  border-radius: 4px; margin: 10px 0 12px 0; outline: none;
+}
+#promptInput:focus { border-color: var(--accent); }
+.promptActions { display: flex; justify-content: flex-end; gap: 8px; }

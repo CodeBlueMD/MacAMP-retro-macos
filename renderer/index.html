@@ -275,7 +275,7 @@
           <button class="swatch" data-theme="vapor" style="background:#241535"><span>Vapor</span></button>
           <button class="swatch" data-theme="midnight" style="background:#0b1226"><span>Midnight</span></button>
         </div>
-        <label class="checkRow"><input type="checkbox" id="albumArtToggle" /> Album art</label>
+        <label class="checkRow"><input type="checkbox" id="albumArtToggle" checked /> Album art</label>
         <button id="btnFullscreenPlayer" class="bigbtn accent">⛶ Fullscreen player</button>
       </div>
 
@@ -314,15 +314,29 @@
       <div class="cardTitle">SHORTCUTS</div>
       <ul>
         <li><b>Space</b> — play / pause</li>
+        <li><b>Z / X / C / V / B</b> — prev / play / pause / stop / next</li>
+        <li><b>N</b> / <b>P</b> — next / previous track</li>
         <li><b>←</b> / <b>→</b> — seek back / forward 5s</li>
         <li><b>↑</b> / <b>↓</b> — volume up / down</li>
-        <li><b>N</b> / <b>P</b> — next / previous track</li>
-        <li><b>S</b> — shuffle</li>
-        <li><b>R</b> — repeat</li>
+        <li><b>L</b> — open / add files</li>
+        <li><b>Del / Backspace</b> — remove selected track</li>
+        <li><b>S</b> — shuffle · <b>R</b> — repeat</li>
         <li><b>J</b> — focus "jump to" search</li>
-        <li><b>Esc</b> — exit fullscreen visualiser</li>
+        <li><b>Esc</b> — exit fullscreen / close dialog</li>
       </ul>
       <button id="btnCloseShortcuts" class="smallbtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Retro Input Prompt Modal (for New Folder & Rename) -->
+  <div id="promptOverlay" class="hidden">
+    <div id="promptCard">
+      <div class="cardTitle" id="promptTitle">ENTER NAME</div>
+      <input id="promptInput" type="text" autocomplete="off" />
+      <div class="promptActions">
+        <button id="btnPromptCancel" class="smallbtn">Cancel</button>
+        <button id="btnPromptOk" class="smallbtn accent">OK</button>
+      </div>
     </div>
   </div>
 
