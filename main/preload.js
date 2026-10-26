@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('retro', {
   cloudRoots: () => ipcRenderer.invoke('fs:cloud-roots'),
   listDir: (dirPath) => ipcRenderer.invoke('fs:list-dir', dirPath),
   scanAudioDir: (dirPath) => ipcRenderer.invoke('fs:scan-audio-dir', dirPath),
+  resolveDroppedPaths: (paths) => ipcRenderer.invoke('fs:resolve-dropped-paths', paths),
   openPath: (dirPath) => ipcRenderer.invoke('fs:open-path', dirPath),
   revealItem: (targetPath) => ipcRenderer.invoke('fs:reveal-item', targetPath),
   createDir: (parentPath, folderName) => ipcRenderer.invoke('fs:create-dir', parentPath, folderName),

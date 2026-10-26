@@ -183,6 +183,25 @@ ipcMain.handle('fs:scan-audio-dir', (_e, dirPath) => {
   return out;
 });
 
+ipcMain.handle('fs:resolve-dropped-paths', (_e, inputPaths) => {
+  const out = [];
+  if (!Array.isArray(inputPaths)) return out;
+  for (const p of inputPaths) {
+    if (!p) continue;
+    try {
+      const st = fs.statSync(p);
+      if (st.isDirectory()) {
+        scanAudioDir(p, out);
+      } else if (st.isFile() && AUDIO_EXTS.has(path.extname(p).toLowerCase())) {
+        out.push(p);
+      }
+    } catch {
+      // ignore unreadable paths
+    }
+  }
+  return out;
+});
+
 ipcMain.handle('fs:open-path', async (_e, dirPath) => {
   try {
     if (!dirPath) return false;
@@ -303,20 +322,30 @@ ipcMain.handle('files:open-m3u', async () => {
     filters: [{ name: 'M3U Playlist', extensions: ['m3u', 'm3u8'] }],
   });
   if (result.canceled || !result.filePaths[0]) return [];
-  const content = fs.readFileSync(result.filePaths[0], 'utf8');
-  return content.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  const m3uPath = result.filePaths[0];
+  const m3uDir = path.dirname(m3uPath);
+  const content = fs.readFileSync(m3uPath, 'utf8');
+  return content
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('#'))
+    .map((l) => (path.isAbsolute(l) ? l : path.resolve(m3uDir, l)));
 });
 
 ipcMain.handle('files:read-tag-bytes', async (_e, filePath, maxBytes) => {
+  let fd = null;
   try {
-    const fd = fs.openSync(filePath, 'r');
+    fd = fs.openSync(filePath, 'r');
     const size = Math.min(maxBytes, fs.fstatSync(fd).size);
     const buf = Buffer.alloc(size);
     fs.readSync(fd, buf, 0, size, 0);
-    fs.closeSync(fd);
     return buf.toString('base64');
   } catch {
     return null;
+  } finally {
+    if (fd !== null) {
+      try { fs.closeSync(fd); } catch {}
+    }
   }
 });
 

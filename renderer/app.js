@@ -178,16 +178,47 @@
     plFooter.textContent = `${playlist.length} track${playlist.length === 1 ? '' : 's'} · ${fmtTime(total)}`;
   }
 
-  function probeDuration(track) {
-    if (track.source !== 'local') return;
-    const probe = new Audio();
-    probe.preload = 'metadata';
-    probe.src = filePathToUrl(track.path);
-    probe.addEventListener('loadedmetadata', () => {
-      track.duration = probe.duration;
+  const probeQueue = [];
+  let activeProbes = 0;
+  let probeRenderTimer = null;
+
+  function scheduleProbeRender() {
+    if (probeRenderTimer) return;
+    probeRenderTimer = setTimeout(() => {
+      probeRenderTimer = null;
       updateFooter();
       renderPlaylist();
-    }, { once: true });
+    }, 80);
+  }
+
+  function pumpProbeQueue() {
+    while (activeProbes < 4 && probeQueue.length > 0) {
+      const track = probeQueue.shift();
+      activeProbes++;
+      const probe = new Audio();
+      probe.preload = 'metadata';
+      const finish = () => {
+        probe.removeAttribute('src');
+        probe.load();
+        activeProbes--;
+        pumpProbeQueue();
+      };
+      probe.addEventListener('loadedmetadata', () => {
+        if (Number.isFinite(probe.duration)) {
+          track.duration = probe.duration;
+          scheduleProbeRender();
+        }
+        finish();
+      }, { once: true });
+      probe.addEventListener('error', finish, { once: true });
+      probe.src = filePathToUrl(track.path);
+    }
+  }
+
+  function probeDuration(track) {
+    if (track.source !== 'local') return;
+    probeQueue.push(track);
+    pumpProbeQueue();
   }
 
   function removeTrack(i) {
@@ -212,16 +243,6 @@
     if (autoPlay && currentIndex === -1 && playlist.length > 0) loadAndPlay(0);
   }
 
-  function addDriveFiles(files) {
-    let added = false;
-    for (const f of files) { playlist.push({ source: 'drive', fileId: f.id, name: f.name }); added = true; }
-    if (added) renderPlaylist();
-    if (currentIndex === -1 && playlist.length > 0) loadAndPlay(0);
-  }
-
-  const MIME_BY_EXT = { mp3: 'audio/mpeg', wav: 'audio/wav', m4a: 'audio/mp4', aac: 'audio/aac', ogg: 'audio/ogg', flac: 'audio/flac' };
-  function guessMime(name) { const ext = (name.split('.').pop() || '').toLowerCase(); return MIME_BY_EXT[ext] || 'audio/mpeg'; }
-
   // ---------- Playback ----------
   function getCrossfadeSeconds() { return parseInt(el('crossfade').value, 10) || 0; }
 
@@ -238,24 +259,11 @@
     const otherGain = targetSlot === 0 ? gainB : gainA;
 
     currentIndex = index;
-    trackName.textContent = track.source === 'drive' ? `${track.name} (loading…)` : track.name;
+    trackName.textContent = track.name;
     checkMarquee(); renderPlaylist(); hideAlbumArt();
 
-    if (track.source === 'drive') {
-      try {
-        const base64 = await window.retro.googleGetTrack(track.fileId);
-        if (token !== loadToken) return;
-        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-        if (blobUrls[targetSlot]) URL.revokeObjectURL(blobUrls[targetSlot]);
-        blobUrls[targetSlot] = URL.createObjectURL(new Blob([bytes], { type: guessMime(track.name) }));
-        targetAudio.src = blobUrls[targetSlot];
-      } catch (err) {
-        trackName.textContent = `${track.name} (failed to load)`; console.error(err); return;
-      }
-    } else {
-      if (blobUrls[targetSlot]) { URL.revokeObjectURL(blobUrls[targetSlot]); blobUrls[targetSlot] = null; }
-      targetAudio.src = filePathToUrl(track.path);
-    }
+    if (blobUrls[targetSlot]) { URL.revokeObjectURL(blobUrls[targetSlot]); blobUrls[targetSlot] = null; }
+    targetAudio.src = filePathToUrl(track.path);
     if (token !== loadToken) return;
 
     targetAudio.volume = volume.value / 100;
@@ -296,8 +304,23 @@
     if (currentIndex === -1 && playlist.length > 0) { loadAndPlay(0); return; }
     resumeAudioCtx(); activeAudio().play().catch(() => {});
   }
-  function pause() { activeAudio().pause(); }
-  function stop() { slotAudios.forEach((a) => { a.pause(); a.currentTime = 0; }); clearTimeout(sleepTimeout); }
+  function pause() {
+    if (currentIndex === -1) return;
+    const a = activeAudio();
+    if (!a.paused) {
+      a.pause();
+      btnPause.classList.add('active');
+    } else {
+      resumeAudioCtx();
+      a.play().catch(() => {});
+    }
+  }
+  function stop() {
+    slotAudios.forEach((a) => { a.pause(); a.currentTime = 0; });
+    btnPlay.classList.remove('active');
+    btnPause.classList.remove('active');
+    clearTimeout(sleepTimeout);
+  }
   function next() {
     if (playlist.length === 0) return;
     let i;
@@ -315,8 +338,18 @@
 
   slotAudios.forEach((a) => {
     a.addEventListener('ended', () => { if (a === activeAudio()) next(); });
-    a.addEventListener('play', () => { if (a === activeAudio()) { btnPlay.classList.add('active'); el('pwrDot').style.background = 'var(--accent)'; } });
-    a.addEventListener('pause', () => { if (a === activeAudio() && a.paused) btnPlay.classList.remove('active'); });
+    a.addEventListener('play', () => {
+      if (a === activeAudio()) {
+        btnPlay.classList.add('active');
+        btnPause.classList.remove('active');
+        el('pwrDot').style.background = 'var(--accent)';
+      }
+    });
+    a.addEventListener('pause', () => {
+      if (a === activeAudio() && a.paused) {
+        btnPlay.classList.remove('active');
+      }
+    });
   });
 
   el('btnPlay').addEventListener('click', play);
@@ -954,6 +987,12 @@
     vizFullCanvas.width = window.innerWidth; vizFullCanvas.height = window.innerHeight;
     fullVizRunning = true; drawFull();
   });
+  window.addEventListener('resize', () => {
+    if (fullVizRunning) {
+      vizFullCanvas.width = window.innerWidth;
+      vizFullCanvas.height = window.innerHeight;
+    }
+  });
   el('btnExitViz').addEventListener('click', () => { vizOverlay.classList.add('hidden'); fullVizRunning = false; });
   el('vizSensitivity').addEventListener('input', (e) => { el('vizSensVal').textContent = e.target.value; });
 
@@ -1146,6 +1185,37 @@
     libContextMenu.style.top = `${Math.max(5, posY)}px`;
   }
 
+  function syncPlaylistPathChange(oldPath, newPath) {
+    if (!oldPath) return;
+    let changed = false;
+    if (newPath) {
+      for (const t of playlist) {
+        if (t.path === oldPath) {
+          t.path = newPath;
+          t.name = baseName(newPath);
+          changed = true;
+        } else if (t.path && t.path.startsWith(oldPath + '/')) {
+          t.path = newPath + t.path.slice(oldPath.length);
+          changed = true;
+        }
+      }
+      if (changed) {
+        if (currentIndex !== -1 && playlist[currentIndex]) {
+          trackName.textContent = playlist[currentIndex].name;
+          checkMarquee();
+        }
+        renderPlaylist();
+      }
+    } else {
+      for (let i = playlist.length - 1; i >= 0; i--) {
+        const p = playlist[i].path;
+        if (p === oldPath || (p && p.startsWith(oldPath + '/'))) {
+          removeTrack(i);
+        }
+      }
+    }
+  }
+
   if (libContextMenu) {
     libContextMenu.querySelectorAll('.ctxItem').forEach((itemEl) => {
       itemEl.addEventListener('click', async (e) => {
@@ -1163,6 +1233,7 @@
             if (res && res.error) {
               alert(`Could not rename: ${res.error}`);
             } else {
+              if (res && res.newPath) syncPlaylistPathChange(target.path, res.newPath);
               await libNavigate(libCurrentPath);
             }
           }
@@ -1182,6 +1253,7 @@
             if (res && res.error) {
               alert(`Could not trash item: ${res.error}`);
             } else {
+              syncPlaylistPathChange(target.path, null);
               await libNavigate(libCurrentPath);
             }
           }
@@ -1232,7 +1304,8 @@
             ? Array.from(librarySelected)
             : [sourceFile];
           for (const src of toMove) {
-            await window.retro.moveItem(src, dirPath);
+            const res = await window.retro.moveItem(src, dirPath);
+            if (res && res.newPath) syncPlaylistPathChange(src, res.newPath);
           }
           librarySelected.clear();
           await libNavigate(libCurrentPath);
@@ -1361,7 +1434,10 @@
         const toMove = (librarySelected.has(sourceFile) && librarySelected.size > 1)
           ? Array.from(librarySelected)
           : [sourceFile];
-        for (const src of toMove) await window.retro.moveItem(src, parent);
+        for (const src of toMove) {
+          const res = await window.retro.moveItem(src, parent);
+          if (res && res.newPath) syncPlaylistPathChange(src, res.newPath);
+        }
         librarySelected.clear();
         await libNavigate(libCurrentPath);
       }
@@ -1414,11 +1490,15 @@
 
   // ---------- Drag & drop ----------
   window.addEventListener('dragover', (e) => e.preventDefault());
-  window.addEventListener('drop', (e) => {
+  window.addEventListener('drop', async (e) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files || []);
-    const paths = files.map((f) => window.retro.pathForFile(f)).filter(Boolean);
-    if (paths.length) addFiles(paths);
+    const rawPaths = files.map((f) => window.retro.pathForFile(f)).filter(Boolean);
+    if (!rawPaths.length) return;
+    const resolved = window.retro.resolveDroppedPaths
+      ? await window.retro.resolveDroppedPaths(rawPaths)
+      : rawPaths;
+    if (resolved && resolved.length) addFiles(resolved);
   });
 
   // Restore saved playlist from previous session
